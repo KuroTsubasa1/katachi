@@ -4,7 +4,8 @@
     <aside class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
       <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <Logo :size="28" :showText="true" />
-        <div class="flex gap-1">
+        <div class="flex items-center gap-1">
+          <SyncStatus v-if="authStore.isAuthenticated" />
           <a
             href="https://github.com/KuroTsubasa1/katachi"
             target="_blank"
@@ -28,6 +29,16 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           </button>
+          <button
+            v-if="authStore.isAuthenticated"
+            @click="handleLogout"
+            class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            title="Logout"
+          >
+            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -35,6 +46,26 @@
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400">Boards</h2>
           <div class="flex gap-1">
+            <button
+              v-if="authStore.isAuthenticated && canvasStore.currentBoard"
+              @click="showShareDialog = true"
+              class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              title="Share board"
+            >
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </button>
+            <button
+              v-if="authStore.isAuthenticated && canvasStore.currentBoard"
+              @click="showHistoryDialog = true"
+              class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              title="Version history"
+            >
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
             <button
               @click="exportData"
               class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
@@ -180,13 +211,46 @@
         No board selected
       </div>
     </main>
+
+    <!-- Dialogs -->
+    <ShareBoardDialog
+      :isOpen="showShareDialog"
+      :boardId="canvasStore.currentBoard?.id || null"
+      @close="showShareDialog = false"
+    />
+
+    <VersionHistoryDialog
+      :isOpen="showHistoryDialog"
+      entityType="board"
+      :entityId="canvasStore.currentBoard?.id || null"
+      @close="showHistoryDialog = false"
+      @restore="handleRestoreVersion"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useCanvasStore } from '~/stores/canvas'
+import { useAuthStore } from '~/stores/auth'
 
 const canvasStore = useCanvasStore()
+const authStore = useAuthStore()
+const router = useRouter()
+
+const showShareDialog = ref(false)
+const showHistoryDialog = ref(false)
+
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push('/login')
+}
+
+const handleRestoreVersion = (version: any) => {
+  console.log('Restoring version:', version)
+  // TODO: Implement restore logic
+  alert('Version restore will be implemented')
+}
 
 const getRandomPosition = () => ({
   x: Math.random() * 400 + 100,
