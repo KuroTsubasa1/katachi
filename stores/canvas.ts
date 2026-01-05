@@ -220,6 +220,11 @@ export const useCanvasStore = defineStore('canvas', {
 
     clearGlobalDrawing() {
       this.globalDrawingPaths = []
+      if (this.currentBoard) {
+        this.currentBoard.shapes = []
+        this.currentBoard.connections = []
+      }
+      console.log('Cleared all drawings, shapes, and connections')
     },
 
     moveGlobalDrawingPath(pathIndex: number, dx: number, dy: number) {

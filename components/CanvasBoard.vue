@@ -181,10 +181,10 @@
 
       <!-- Clear drawing button -->
       <button
-        v-if="canvasStore.globalDrawingPaths && canvasStore.globalDrawingPaths.length > 0"
+        v-if="hasAnyDrawings"
         class="px-3 py-2 bg-white dark:bg-gray-800 rounded shadow-lg hover:bg-red-50 dark:hover:bg-red-900 transition flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
         @click="canvasStore.clearGlobalDrawing()"
-        title="Clear all drawings"
+        title="Clear all drawings, shapes, and arrows"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -202,6 +202,13 @@ const canvasStore = useCanvasStore()
 const canvasContainer = ref<HTMLElement | null>(null)
 
 const viewport = computed(() => canvasStore.viewport)
+
+const hasAnyDrawings = computed(() => {
+  const hasPaths = canvasStore.globalDrawingPaths && canvasStore.globalDrawingPaths.length > 0
+  const hasShapes = canvasStore.currentBoard?.shapes && canvasStore.currentBoard.shapes.length > 0
+  const hasConnections = canvasStore.currentBoard?.connections && canvasStore.currentBoard.connections.length > 0
+  return hasPaths || hasShapes || hasConnections
+})
 
 let panStartPos = { x: 0, y: 0 }
 let viewportStartPos = { x: 0, y: 0 }
