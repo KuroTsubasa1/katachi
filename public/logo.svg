@@ -1,0 +1,34 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with subtle gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:0.1" />
+    </linearGradient>
+    <linearGradient id="shapeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366F1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="100" cy="100" r="90" fill="url(#bgGradient)"/>
+
+  <!-- Abstract geometric shapes representing "形" (form/shape) -->
+  <!-- Square (representing structure) -->
+  <rect x="60" y="50" width="50" height="50" rx="4" fill="url(#shapeGradient)" opacity="0.9"/>
+
+  <!-- Circle (representing fluidity) -->
+  <circle cx="115" cy="115" r="30" fill="#8B5CF6" opacity="0.8"/>
+
+  <!-- Triangle (representing creativity) -->
+  <path d="M 100 140 L 70 170 L 130 170 Z" fill="#6366F1" opacity="0.85"/>
+
+  <!-- Subtle kanji-inspired accent strokes -->
+  <rect x="55" y="45" width="4" height="60" rx="2" fill="#60A5FA" opacity="0.6"/>
+  <rect x="55" y="45" width="60" height="4" rx="2" fill="#60A5FA" opacity="0.6"/>
+
+  <!-- Small decorative elements (like brush strokes) -->
+  <circle cx="145" cy="55" r="3" fill="#F59E0B"/>
+  <circle cx="55" cy="145" r="3" fill="#F59E0B"/>
+</svg>

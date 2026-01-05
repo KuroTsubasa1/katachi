@@ -1,0 +1,300 @@
+import { defineStore } from 'pinia'
+import type { NoteCard, Board, ViewPort, Tool } from '~/types'
+
+export const useCanvasStore = defineStore('canvas', {
+  state: () => ({
+    currentBoard: null as Board | null,
+    boards: [] as Board[],
+    viewport: {
+      x: 0,
+      y: 0,
+      scale: 1
+    } as ViewPort,
+    selectedCardId: null as string | null,
+    isDragging: false,
+    isPanning: false,
+    draggingCardId: null as string | null,
+    dropTargetColumnId: null as string | null,
+    snapToGrid: false,
+    gridSize: 20,
+    darkMode: false,
+    globalDrawingPaths: [] as string[],
+    currentTool: {
+      type: 'select',
+      color: '#000000',
+      width: 2
+    } as Tool
+  }),
+
+  getters: {
+    selectedCard: (state): NoteCard | null => {
+      if (!state.currentBoard || !state.selectedCardId) return null
+      return state.currentBoard.cards.find(card => card.id === state.selectedCardId) || null
+    },
+
+    sortedCards: (state): NoteCard[] => {
+      if (!state.currentBoard) return []
+      return [...state.currentBoard.cards].sort((a, b) => a.zIndex - b.zIndex)
+    }
+  },
+
+  actions: {
+    createBoard(name: string): Board {
+      const now = new Date().toISOString()
+      const board: Board = {
+        id: crypto.randomUUID(),
+        name,
+        cards: [],
+        backgroundColor: '#f5f5f5',
+        createdAt: now,
+        updatedAt: now
+      }
+      this.boards.push(board)
+      this.currentBoard = board
+      return board
+    },
+
+    addCard(card: Omit<NoteCard, 'id' | 'createdAt' | 'updatedAt' | 'zIndex'>): NoteCard {
+      if (!this.currentBoard) throw new Error('No active board')
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      const now = new Date().toISOString()
+      const newCard: NoteCard = {
+        ...card,
+        id: crypto.randomUUID(),
+        zIndex: maxZIndex + 1,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = now
+      return newCard
+    },
+
+    updateCard(cardId: string, updates: Partial<NoteCard>) {
+      if (!this.currentBoard) return
+
+      const cardIndex = this.currentBoard.cards.findIndex(c => c.id === cardId)
+      if (cardIndex === -1) return
+
+      const now = new Date().toISOString()
+      this.currentBoard.cards[cardIndex] = {
+        ...this.currentBoard.cards[cardIndex],
+        ...updates,
+        updatedAt: now
+      }
+      this.currentBoard.updatedAt = now
+    },
+
+    deleteCard(cardId: string) {
+      if (!this.currentBoard) return
+
+      this.currentBoard.cards = this.currentBoard.cards.filter(c => c.id !== cardId)
+      this.currentBoard.updatedAt = new Date().toISOString()
+
+      if (this.selectedCardId === cardId) {
+        this.selectedCardId = null
+      }
+    },
+
+    selectCard(cardId: string | null) {
+      this.selectedCardId = cardId
+
+      if (cardId && this.currentBoard) {
+        const card = this.currentBoard.cards.find(c => c.id === cardId)
+        if (card) {
+          this.bringToFront(cardId)
+        }
+      }
+    },
+
+    bringToFront(cardId: string) {
+      if (!this.currentBoard) return
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      this.updateCard(cardId, { zIndex: maxZIndex + 1 })
+    },
+
+    updateViewport(updates: Partial<ViewPort>) {
+      this.viewport = { ...this.viewport, ...updates }
+    },
+
+    setDragging(isDragging: boolean) {
+      this.isDragging = isDragging
+    },
+
+    setPanning(isPanning: boolean) {
+      this.isPanning = isPanning
+    },
+
+    setTool(tool: Partial<Tool>) {
+      this.currentTool = { ...this.currentTool, ...tool }
+    },
+
+    setDraggingCard(cardId: string | null) {
+      this.draggingCardId = cardId
+    },
+
+    setDropTargetColumn(columnId: string | null) {
+      this.dropTargetColumnId = columnId
+    },
+
+    moveCardToColumn(cardId: string, columnId: string) {
+      if (!this.currentBoard) return
+
+      const card = this.currentBoard.cards.find(c => c.id === cardId)
+      const column = this.currentBoard.cards.find(c => c.id === columnId && c.type === 'column')
+
+      console.log('moveCardToColumn called:', { cardId, columnId, card, column })
+
+      if (!card || !column || card.id === columnId) {
+        console.log('Cannot move card - invalid card or column')
+        return
+      }
+
+      // Don't allow moving columns into columns
+      if (card.type === 'column') {
+        console.log('Cannot move column into column')
+        return
+      }
+
+      // Add card reference to column
+      if (!column.columnCards) column.columnCards = []
+      if (!column.columnCards.includes(cardId)) {
+        column.columnCards.push(cardId)
+        console.log('Card added to column.columnCards:', column.columnCards)
+      }
+
+      // Update card to be hidden from main canvas (we'll render it in the column)
+      this.updateCard(cardId, {
+        position: { x: -10000, y: -10000 } // Move off-canvas
+      })
+
+      console.log('Card moved off-canvas')
+    },
+
+    removeCardFromColumn(cardId: string, columnId: string) {
+      if (!this.currentBoard) return
+
+      const column = this.currentBoard.cards.find(c => c.id === columnId && c.type === 'column')
+      if (!column || !column.columnCards) return
+
+      column.columnCards = column.columnCards.filter(id => id !== cardId)
+    },
+
+    toggleSnapToGrid() {
+      this.snapToGrid = !this.snapToGrid
+    },
+
+    toggleDarkMode() {
+      this.darkMode = !this.darkMode
+      if (typeof document !== 'undefined') {
+        if (this.darkMode) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      }
+    },
+
+    snapPositionToGrid(position: { x: number, y: number }): { x: number, y: number } {
+      if (!this.snapToGrid) return position
+      return {
+        x: Math.round(position.x / this.gridSize) * this.gridSize,
+        y: Math.round(position.y / this.gridSize) * this.gridSize
+      }
+    },
+
+    addGlobalDrawingPath(path: string) {
+      this.globalDrawingPaths.push(path)
+    },
+
+    clearGlobalDrawing() {
+      this.globalDrawingPaths = []
+    },
+
+    moveGlobalDrawingPath(pathIndex: number, dx: number, dy: number) {
+      if (!this.globalDrawingPaths[pathIndex]) return
+
+      const pathData = JSON.parse(this.globalDrawingPaths[pathIndex])
+      pathData.points = pathData.points.map((point: {x: number, y: number}) => ({
+        x: point.x + dx,
+        y: point.y + dy
+      }))
+      this.globalDrawingPaths[pathIndex] = JSON.stringify(pathData)
+    },
+
+    deleteGlobalDrawingPath(pathIndex: number) {
+      this.globalDrawingPaths.splice(pathIndex, 1)
+    },
+
+    addImageCard(position: { x: number, y: number }, imageUrl: string, size?: { width: number, height: number }): NoteCard {
+      if (!this.currentBoard) throw new Error('No active board')
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      const now = new Date().toISOString()
+      const newCard: NoteCard = {
+        id: crypto.randomUUID(),
+        type: 'image',
+        position,
+        size: size || { width: 300, height: 300 },
+        content: '',
+        imageUrl,
+        zIndex: maxZIndex + 1,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = now
+      return newCard
+    },
+
+    addColumnCard(position: { x: number, y: number }): NoteCard {
+      if (!this.currentBoard) throw new Error('No active board')
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      const now = new Date().toISOString()
+      const newCard: NoteCard = {
+        id: crypto.randomUUID(),
+        type: 'column',
+        position,
+        size: { width: 250, height: 500 },
+        content: 'New Column',
+        columnCards: [],
+        color: '#f3f4f6',
+        zIndex: maxZIndex + 1,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = now
+      return newCard
+    },
+
+    addDrawingCard(position: { x: number, y: number }): NoteCard {
+      if (!this.currentBoard) throw new Error('No active board')
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      const now = new Date().toISOString()
+      const newCard: NoteCard = {
+        id: crypto.randomUUID(),
+        type: 'drawing',
+        position,
+        size: { width: 400, height: 400 },
+        content: '',
+        drawingData: { paths: [], color: '#000000', width: 2 },
+        color: '#ffffff',
+        zIndex: maxZIndex + 1,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = now
+      return newCard
+    }
+  }
+})

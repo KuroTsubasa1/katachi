@@ -1,0 +1,55 @@
+{
+  "name": "katachi",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"nuxt dev\" \"npm run test:watch\"",
+    "dev:notest": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest --reporter=verbose",
+    "test:ui": "vitest --ui",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{ts,vue}": [
+      "vitest related --run"
+    ]
+  },
+  "dependencies": {
+    "nuxt": "^3.15.1",
+    "vue": "latest",
+    "@vueuse/core": "^11.2.0",
+    "@vueuse/nuxt": "^11.2.0",
+    "pinia": "^2.2.8",
+    "@pinia/nuxt": "^0.9.0",
+    "konva": "^9.3.16",
+    "vue-konva": "^3.0.2",
+    "@tiptap/vue-3": "^2.10.3",
+    "@tiptap/starter-kit": "^2.10.3",
+    "@tiptap/extension-placeholder": "^2.10.3",
+    "@tiptap/extension-color": "^2.10.3",
+    "@tiptap/extension-text-style": "^2.10.3",
+    "@tiptap/extension-image": "^2.10.3",
+    "@tiptap/extension-task-list": "^2.10.3",
+    "@tiptap/extension-task-item": "^2.10.3",
+    "fabric": "^6.5.1",
+    "marked": "^15.0.6"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@nuxtjs/tailwindcss": "^6.12.2",
+    "@nuxt/test-utils": "^3.14.4",
+    "@vue/test-utils": "^2.4.6",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.0",
+    "happy-dom": "^15.11.7",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "concurrently": "^9.1.0"
+  }
+}
