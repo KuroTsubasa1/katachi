@@ -29,36 +29,58 @@
       rel="noopener noreferrer"
       class="flex-1 flex flex-col hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded transition overflow-hidden"
     >
-      <!-- Preview image -->
-      <div v-if="metadata.image" class="w-full h-32 bg-gray-200 dark:bg-gray-700 overflow-hidden">
-        <img
-          :src="metadata.image"
-          :alt="metadata.title"
-          class="w-full h-full object-cover"
-          @error="metadata.image = ''"
-        />
+      <!-- URL at top -->
+      <div
+        class="p-3 border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition"
+        @click.prevent.stop="showMetadata = !showMetadata"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <svg class="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            <span class="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ localUrl }}</span>
+          </div>
+          <svg
+            class="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform"
+            :class="{ 'rotate-180': showMetadata }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
 
-      <!-- Content -->
-      <div class="p-4 flex-1 flex flex-col gap-2">
-        <h3 class="font-semibold text-gray-800 dark:text-gray-200 line-clamp-2">
-          {{ metadata.title || 'Link Preview' }}
-        </h3>
+      <!-- Collapsible metadata section -->
+      <div v-show="showMetadata" class="flex-1 flex flex-col overflow-hidden">
+        <!-- Preview image -->
+        <div v-if="metadata.image" class="w-full h-32 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+          <img
+            :src="metadata.image"
+            :alt="metadata.title"
+            class="w-full h-full object-cover"
+            @error="metadata.image = ''"
+          />
+        </div>
 
-        <p v-if="metadata.description" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-          {{ metadata.description }}
-        </p>
+        <!-- Metadata content -->
+        <div class="p-4 flex-1 flex flex-col gap-2">
+          <h3 class="font-semibold text-gray-800 dark:text-gray-200 line-clamp-2">
+            {{ metadata.title || 'Link Preview' }}
+          </h3>
 
-        <div class="mt-auto pt-2 flex items-center justify-between border-t border-gray-200 dark:border-gray-600">
-          <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <p v-if="metadata.description" class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+            {{ metadata.description }}
+          </p>
+
+          <div class="mt-auto pt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
             <span class="truncate">{{ metadata.siteName || displayDomain }}</span>
           </div>
-          <svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
         </div>
       </div>
     </a>
@@ -80,6 +102,7 @@ const emit = defineEmits<{
 
 const localUrl = ref(props.url || '')
 const loading = ref(false)
+const showMetadata = ref(true)
 const metadata = ref<{
   title?: string
   description?: string
