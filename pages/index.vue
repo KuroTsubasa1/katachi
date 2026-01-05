@@ -20,15 +20,32 @@
       <div class="flex-1 p-4 overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400">Boards</h2>
-          <button
-            @click="createNewBoard"
-            class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            title="Create new board"
-          >
-            <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          <div class="flex gap-1">
+            <button
+              @click="exportData"
+              class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              title="Export all data"
+            >
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+            <label class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer" title="Import data">
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <input type="file" accept=".json" class="hidden" @change="importData" />
+            </label>
+            <button
+              @click="createNewBoard"
+              class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              title="Create new board"
+            >
+              <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div
           v-for="board in canvasStore.boards"
@@ -165,6 +182,64 @@ const getRandomPosition = () => ({
 const createNewBoard = () => {
   const boardNumber = canvasStore.boards.length + 1
   canvasStore.createBoard(`Board ${boardNumber}`)
+}
+
+const exportData = () => {
+  const data = {
+    boards: canvasStore.boards,
+    viewport: canvasStore.viewport,
+    globalDrawingPaths: canvasStore.globalDrawingPaths,
+    settings: {
+      snapToGrid: canvasStore.snapToGrid,
+      darkMode: canvasStore.darkMode
+    },
+    exportedAt: new Date().toISOString(),
+    version: '1.0'
+  }
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `katachi-backup-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const importData = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+
+    if (confirm('This will replace all current boards. Continue?')) {
+      canvasStore.boards = data.boards || []
+      canvasStore.viewport = data.viewport || { x: 0, y: 0, scale: 1 }
+      canvasStore.globalDrawingPaths = data.globalDrawingPaths || []
+
+      if (data.settings) {
+        canvasStore.snapToGrid = data.settings.snapToGrid || false
+        if (data.settings.darkMode !== canvasStore.darkMode) {
+          canvasStore.toggleDarkMode()
+        }
+      }
+
+      if (canvasStore.boards.length > 0) {
+        canvasStore.currentBoard = canvasStore.boards[0]
+      }
+
+      canvasStore.saveToLocalStorage()
+      alert('Data imported successfully!')
+    }
+  } catch (error) {
+    alert('Failed to import data. Please check the file format.')
+    console.error('Import error:', error)
+  }
+
+  input.value = ''
 }
 
 const addCard = (type: string) => {

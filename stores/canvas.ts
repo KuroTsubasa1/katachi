@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import type { NoteCard, Board, ViewPort, Tool } from '~/types'
 
+const STORAGE_KEY = 'katachi_boards'
+const VIEWPORT_KEY = 'katachi_viewport'
+const DRAWING_KEY = 'katachi_drawings'
+const SETTINGS_KEY = 'katachi_settings'
+
 export const useCanvasStore = defineStore('canvas', {
   state: () => ({
     currentBoard: null as Board | null,
@@ -227,6 +232,81 @@ export const useCanvasStore = defineStore('canvas', {
 
     deleteGlobalDrawingPath(pathIndex: number) {
       this.globalDrawingPaths.splice(pathIndex, 1)
+    },
+
+    saveToLocalStorage() {
+      if (typeof window === 'undefined') return
+
+      try {
+        // Save boards
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.boards))
+
+        // Save current board ID
+        localStorage.setItem('katachi_current_board_id', this.currentBoard?.id || '')
+
+        // Save viewport
+        localStorage.setItem(VIEWPORT_KEY, JSON.stringify(this.viewport))
+
+        // Save global drawings
+        localStorage.setItem(DRAWING_KEY, JSON.stringify(this.globalDrawingPaths))
+
+        // Save settings
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+          snapToGrid: this.snapToGrid,
+          darkMode: this.darkMode
+        }))
+
+        console.log('Saved to localStorage')
+      } catch (error) {
+        console.error('Failed to save to localStorage:', error)
+      }
+    },
+
+    loadFromLocalStorage() {
+      if (typeof window === 'undefined') return
+
+      try {
+        // Load boards
+        const boardsData = localStorage.getItem(STORAGE_KEY)
+        if (boardsData) {
+          this.boards = JSON.parse(boardsData)
+        }
+
+        // Load current board
+        const currentBoardId = localStorage.getItem('katachi_current_board_id')
+        if (currentBoardId) {
+          this.currentBoard = this.boards.find(b => b.id === currentBoardId) || null
+        }
+
+        // Load viewport
+        const viewportData = localStorage.getItem(VIEWPORT_KEY)
+        if (viewportData) {
+          this.viewport = JSON.parse(viewportData)
+        }
+
+        // Load global drawings
+        const drawingData = localStorage.getItem(DRAWING_KEY)
+        if (drawingData) {
+          this.globalDrawingPaths = JSON.parse(drawingData)
+        }
+
+        // Load settings
+        const settingsData = localStorage.getItem(SETTINGS_KEY)
+        if (settingsData) {
+          const settings = JSON.parse(settingsData)
+          this.snapToGrid = settings.snapToGrid || false
+          this.darkMode = settings.darkMode || false
+
+          // Apply dark mode to document
+          if (this.darkMode && typeof document !== 'undefined') {
+            document.documentElement.classList.add('dark')
+          }
+        }
+
+        console.log('Loaded from localStorage:', this.boards.length, 'boards')
+      } catch (error) {
+        console.error('Failed to load from localStorage:', error)
+      }
     },
 
     addImageCard(position: { x: number, y: number }, imageUrl: string, size?: { width: number, height: number }): NoteCard {
