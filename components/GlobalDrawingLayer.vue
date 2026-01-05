@@ -13,11 +13,17 @@
       class="absolute top-0 left-0"
       :width="canvasSize.width"
       :height="canvasSize.height"
-      :style="{
+:style="{
         pointerEvents: isDrawingMode ? 'auto' : 'none',
-        cursor: isDrawingMode ? (currentTool === 'pen' ? 'crosshair' : currentTool === 'eraser' ? 'not-allowed' : currentTool === 'move-stroke' ? 'move' : 'default') : 'default'
+        cursor: isDrawingMode ? (
+          currentTool === 'pen' ? 'crosshair' :
+          currentTool === 'eraser' ? 'not-allowed' :
+          currentTool === 'move-stroke' ? 'move' :
+          ['rectangle', 'circle', 'line', 'arrow'].includes(currentTool) ? 'crosshair' :
+          'default'
+        ) : 'default'
       }"
-      @mousedown.stop="startDrawing"
+@mousedown.stop="handleMouseDown"
       @mousemove.stop="draw"
       @mouseup.stop="stopDrawing"
       @mouseleave="stopDrawing"
@@ -36,11 +42,18 @@ const currentPath = ref<{x: number, y: number}[]>([])
 const selectedStrokeIndex = ref<number | null>(null)
 const isDraggingStroke = ref(false)
 const strokeDragStart = ref<{x: number, y: number} | null>(null)
+const shapeStart = ref<{x: number, y: number} | null>(null)
+const shapeEnd = ref<{x: number, y: number} | null>(null)
+const isDrawingShape = ref(false)
 
 const isDrawingMode = computed(() =>
   canvasStore.currentTool.type === 'pen' ||
   canvasStore.currentTool.type === 'eraser' ||
-  canvasStore.currentTool.type === 'move-stroke'
+  canvasStore.currentTool.type === 'move-stroke' ||
+  canvasStore.currentTool.type === 'rectangle' ||
+  canvasStore.currentTool.type === 'circle' ||
+  canvasStore.currentTool.type === 'line' ||
+  canvasStore.currentTool.type === 'arrow'
 )
 const currentTool = computed(() => canvasStore.currentTool.type)
 
@@ -73,10 +86,23 @@ const getCanvasCoords = (e: MouseEvent): { x: number, y: number } => {
   return { x: canvasX, y: canvasY }
 }
 
+const handleMouseDown = (e: MouseEvent) => {
+  console.log('=== MOUSEDOWN EVENT ===')
+  console.log('Tool type:', canvasStore.currentTool.type)
+  console.log('isDrawingShape:', isDrawingShape.value)
+  console.log('shapeStart:', shapeStart.value)
+  console.log('shapeEnd:', shapeEnd.value)
+
+  startDrawing(e)
+}
+
 const startDrawing = (e: MouseEvent) => {
+  console.log('startDrawing called, tool:', canvasStore.currentTool.type, 'isDrawingShape:', isDrawingShape.value)
+
   if (!canvas.value) return
 
   const canvasCoords = getCanvasCoords(e)
+  console.log('Canvas coords:', canvasCoords)
 
   // Move stroke mode - select and drag strokes
   if (canvasStore.currentTool.type === 'move-stroke') {
@@ -86,6 +112,55 @@ const startDrawing = (e: MouseEvent) => {
       isDraggingStroke.value = true
       strokeDragStart.value = canvasCoords
       redrawCanvas()
+    }
+    return
+  }
+
+  // Shape drawing mode - click to place, click again to confirm
+  const isShapeTool = ['rectangle', 'circle', 'line', 'arrow'].includes(canvasStore.currentTool.type)
+  console.log('Is shape tool:', isShapeTool)
+
+  if (isShapeTool) {
+    if (!isDrawingShape.value) {
+      // First click - set start point
+      shapeStart.value = canvasCoords
+      shapeEnd.value = canvasCoords
+      isDrawingShape.value = true
+      console.log('✓ FIRST CLICK - Shape started at:', canvasCoords, 'isDrawingShape now:', isDrawingShape.value)
+    } else {
+      // Second click - confirm and save
+      console.log('✓ SECOND CLICK DETECTED - isDrawingShape:', isDrawingShape.value)
+      shapeEnd.value = canvasCoords
+
+      // Immediately save the shape
+      if (shapeStart.value && shapeEnd.value) {
+        const newShape = {
+          type: canvasStore.currentTool.type as 'rectangle' | 'circle' | 'line' | 'arrow',
+          position: shapeStart.value,
+          size: {
+            width: shapeEnd.value.x - shapeStart.value.x,
+            height: shapeEnd.value.y - shapeStart.value.y
+          },
+          color: canvasStore.currentTool.color || '#000000',
+          width: canvasStore.currentTool.width || 2,
+          fill: false
+        }
+
+        console.log('Adding shape:', newShape)
+        canvasStore.addShape(newShape)
+
+        shapeStart.value = null
+        shapeEnd.value = null
+        isDrawingShape.value = false
+
+        nextTick(() => {
+          console.log('Redrawing canvas after shape add')
+          redrawCanvas()
+        })
+      } else {
+        console.error('Missing shapeStart or shapeEnd!')
+      }
+      console.log('✓ Shape saved, isDrawingShape reset to:', isDrawingShape.value)
     }
     return
   }
@@ -126,6 +201,13 @@ const draw = (e: MouseEvent) => {
     return
   }
 
+  // Shape drawing preview - update on mouse move
+  if (isDrawingShape.value && shapeStart.value && ['rectangle', 'circle', 'line', 'arrow'].includes(canvasStore.currentTool.type)) {
+    shapeEnd.value = canvasCoords
+    drawShapePreview()
+    return
+  }
+
   // Regular drawing
   if (!isDrawing.value) return
 
@@ -156,11 +238,75 @@ const draw = (e: MouseEvent) => {
   }
 }
 
+const drawShapePreview = () => {
+  if (!canvas.value || !shapeStart.value || !shapeEnd.value) return
+
+  redrawCanvas()
+
+  const ctx = canvas.value.getContext('2d')
+  if (!ctx) return
+
+  ctx.strokeStyle = canvasStore.currentTool.color || '#000000'
+  ctx.lineWidth = canvasStore.currentTool.width || 2
+  ctx.lineCap = 'round'
+
+  const x1 = shapeStart.value.x
+  const y1 = shapeStart.value.y
+  const x2 = shapeEnd.value.x
+  const y2 = shapeEnd.value.y
+
+  switch (canvasStore.currentTool.type) {
+    case 'rectangle':
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+      break
+    case 'circle': {
+      const rx = Math.abs(x2 - x1) / 2
+      const ry = Math.abs(y2 - y1) / 2
+      const cx = x1 + (x2 - x1) / 2
+      const cy = y1 + (y2 - y1) / 2
+      ctx.beginPath()
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+      ctx.stroke()
+      break
+    }
+    case 'line':
+    case 'arrow':
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.stroke()
+
+      if (canvasStore.currentTool.type === 'arrow') {
+        // Draw arrowhead
+        const angle = Math.atan2(y2 - y1, x2 - x1)
+        const headLength = 15
+        ctx.beginPath()
+        ctx.moveTo(x2, y2)
+        ctx.lineTo(
+          x2 - headLength * Math.cos(angle - Math.PI / 6),
+          y2 - headLength * Math.sin(angle - Math.PI / 6)
+        )
+        ctx.moveTo(x2, y2)
+        ctx.lineTo(
+          x2 - headLength * Math.cos(angle + Math.PI / 6),
+          y2 - headLength * Math.sin(angle + Math.PI / 6)
+        )
+        ctx.stroke()
+      }
+      break
+  }
+}
+
 const stopDrawing = () => {
   // Stop moving stroke
   if (isDraggingStroke.value) {
     isDraggingStroke.value = false
     strokeDragStart.value = null
+    return
+  }
+
+  // Don't auto-stop for shapes (they need second click to confirm)
+  if (isDrawingShape.value) {
     return
   }
 
@@ -195,6 +341,62 @@ const redrawCanvas = () => {
   if (!ctx) return
 
   ctx.clearRect(0, 0, canvas.value.width, canvas.value.height)
+
+  // Redraw all saved shapes first (so they're behind strokes)
+  if (canvasStore.currentBoard?.shapes) {
+    canvasStore.currentBoard.shapes.forEach(shape => {
+      ctx.strokeStyle = shape.color
+      ctx.lineWidth = shape.width
+      ctx.lineCap = 'round'
+
+      switch (shape.type) {
+        case 'rectangle':
+          ctx.strokeRect(shape.position.x, shape.position.y, shape.size.width, shape.size.height)
+          break
+        case 'circle': {
+          const rx = Math.abs(shape.size.width) / 2
+          const ry = Math.abs(shape.size.height) / 2
+          const cx = shape.position.x + shape.size.width / 2
+          const cy = shape.position.y + shape.size.height / 2
+          ctx.beginPath()
+          ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+          ctx.stroke()
+          break
+        }
+        case 'line':
+        case 'arrow': {
+          ctx.beginPath()
+          ctx.moveTo(shape.position.x, shape.position.y)
+          ctx.lineTo(shape.position.x + shape.size.width, shape.position.y + shape.size.height)
+          ctx.stroke()
+
+          if (shape.type === 'arrow') {
+            // Draw arrowhead
+            const x1 = shape.position.x
+            const y1 = shape.position.y
+            const x2 = shape.position.x + shape.size.width
+            const y2 = shape.position.y + shape.size.height
+            const angle = Math.atan2(y2 - y1, x2 - x1)
+            const headLength = 15
+
+            ctx.beginPath()
+            ctx.moveTo(x2, y2)
+            ctx.lineTo(
+              x2 - headLength * Math.cos(angle - Math.PI / 6),
+              y2 - headLength * Math.sin(angle - Math.PI / 6)
+            )
+            ctx.moveTo(x2, y2)
+            ctx.lineTo(
+              x2 - headLength * Math.cos(angle + Math.PI / 6),
+              y2 - headLength * Math.sin(angle + Math.PI / 6)
+            )
+            ctx.stroke()
+          }
+          break
+        }
+      }
+    })
+  }
 
   // Redraw all saved paths
   if (!canvasStore.globalDrawingPaths) return
@@ -254,6 +456,12 @@ watch(isDrawingMode, (newVal) => {
 })
 
 watch(() => canvasStore.globalDrawingPaths, () => {
+  nextTick(() => {
+    redrawCanvas()
+  })
+}, { deep: true })
+
+watch(() => canvasStore.currentBoard?.shapes, () => {
   nextTick(() => {
     redrawCanvas()
   })

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { NoteCard, Board, ViewPort, Tool } from '~/types'
+import type { NoteCard, Board, ViewPort, Tool, Shape, Connection } from '~/types'
 
 const STORAGE_KEY = 'katachi_boards'
 const VIEWPORT_KEY = 'katachi_viewport'
@@ -24,6 +24,7 @@ export const useCanvasStore = defineStore('canvas', {
     gridSize: 20,
     darkMode: false,
     globalDrawingPaths: [] as string[],
+    connectionStart: null as string | null,
     currentTool: {
       type: 'select',
       color: '#000000',
@@ -50,6 +51,8 @@ export const useCanvasStore = defineStore('canvas', {
         id: crypto.randomUUID(),
         name,
         cards: [],
+        connections: [],
+        shapes: [],
         backgroundColor: '#f5f5f5',
         createdAt: now,
         updatedAt: now
@@ -232,6 +235,47 @@ export const useCanvasStore = defineStore('canvas', {
 
     deleteGlobalDrawingPath(pathIndex: number) {
       this.globalDrawingPaths.splice(pathIndex, 1)
+    },
+
+    addConnection(fromCardId: string, toCardId: string) {
+      if (!this.currentBoard) return
+
+      const connection = {
+        id: crypto.randomUUID(),
+        fromCardId,
+        toCardId,
+        color: '#6366F1',
+        width: 2,
+        style: 'curved' as const
+      }
+
+      this.currentBoard.connections.push(connection)
+    },
+
+    removeConnection(connectionId: string) {
+      if (!this.currentBoard) return
+      this.currentBoard.connections = this.currentBoard.connections.filter(c => c.id !== connectionId)
+    },
+
+    addShape(shape: Omit<Shape, 'id'>) {
+      if (!this.currentBoard) return
+
+      const newShape: Shape = {
+        ...shape,
+        id: crypto.randomUUID()
+      }
+
+      if (!this.currentBoard.shapes) {
+        this.currentBoard.shapes = []
+      }
+
+      this.currentBoard.shapes.push(newShape)
+      console.log('Shape added to store:', newShape.type, 'Total shapes:', this.currentBoard.shapes.length)
+    },
+
+    removeShape(shapeId: string) {
+      if (!this.currentBoard) return
+      this.currentBoard.shapes = this.currentBoard.shapes.filter(s => s.id !== shapeId)
     },
 
     saveToLocalStorage() {

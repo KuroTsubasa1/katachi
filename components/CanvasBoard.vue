@@ -14,6 +14,9 @@
         transition: canvasStore.isDragging ? 'none' : 'transform 0.1s ease-out'
       }"
     >
+      <!-- Connections and shapes layer -->
+      <ConnectionsLayer />
+
       <NoteCard
         v-for="card in canvasStore.sortedCards"
         :key="card.id"
@@ -26,8 +29,8 @@
 
     <!-- Drawing tools (when in draw mode) -->
     <div
-      v-if="canvasStore.currentTool.type === 'pen' || canvasStore.currentTool.type === 'eraser'"
-      class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-3 flex gap-3 items-center pointer-events-auto"
+      v-if="canvasStore.currentTool.type !== 'select'"
+      class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-3 flex gap-2 items-center pointer-events-auto"
       style="z-index: 1001;"
       @click.stop
       @mousedown.stop
@@ -50,12 +53,46 @@
         @click.stop="canvasStore.setTool({ type: 'move-stroke' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'move-stroke', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'move-stroke' }"
         class="px-3 py-2 rounded text-sm font-medium transition"
-        title="Move/Select strokes"
+        title="Move strokes"
       >
         Move
       </button>
+      <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
+      <button
+        @click.stop="canvasStore.setTool({ type: 'rectangle' })"
+        :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'rectangle', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'rectangle' }"
+        class="px-3 py-2 rounded text-sm font-medium transition"
+        title="Draw rectangle"
+      >
+        □
+      </button>
+      <button
+        @click.stop="canvasStore.setTool({ type: 'circle' })"
+        :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'circle', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'circle' }"
+        class="px-3 py-2 rounded text-sm font-medium transition"
+        title="Draw circle"
+      >
+        ○
+      </button>
+      <button
+        @click.stop="canvasStore.setTool({ type: 'arrow' })"
+        :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'arrow', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'arrow' }"
+        class="px-3 py-2 rounded text-sm font-medium transition"
+        title="Draw arrow"
+      >
+        →
+      </button>
+      <button
+        @click.stop="canvasStore.setTool({ type: 'line' })"
+        :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'line', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'line' }"
+        class="px-3 py-2 rounded text-sm font-medium transition"
+        title="Draw line"
+      >
+        —
+      </button>
+      <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
       <input
-        v-if="canvasStore.currentTool.type === 'pen'"
+        v-if="canvasStore.currentTool.type === 'pen' || canvasStore.currentTool.type === 'rectangle' || canvasStore.currentTool.type === 'circle' || canvasStore.currentTool.type === 'line' || canvasStore.currentTool.type === 'arrow'"
         type="color"
         v-model="canvasStore.currentTool.color"
         class="w-10 h-10 rounded cursor-pointer"
@@ -114,11 +151,11 @@
         Snap
       </button>
 
-      <!-- Draw anywhere button -->
+      <!-- Draw/Shapes mode button -->
       <button
         class="px-3 py-2 bg-white dark:bg-gray-800 rounded shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2 text-sm font-medium"
         :class="{
-          'bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700': canvasStore.currentTool.type === 'pen' || canvasStore.currentTool.type === 'eraser'
+          'bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700': canvasStore.currentTool.type !== 'select'
         }"
         @click="toggleDrawMode"
       >
@@ -126,6 +163,20 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
         </svg>
         Draw
+      </button>
+
+      <!-- Connect cards button -->
+      <button
+        class="px-3 py-2 bg-white dark:bg-gray-800 rounded shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2 text-sm font-medium"
+        :class="{
+          'bg-purple-500 text-white hover:bg-purple-600': canvasStore.currentTool.type === 'connect'
+        }"
+        @click="toggleConnectMode"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+        Connect
       </button>
 
       <!-- Clear drawing button -->
@@ -204,10 +255,19 @@ const zoomOut = () => {
 }
 
 const toggleDrawMode = () => {
-  if (canvasStore.currentTool.type === 'pen' || canvasStore.currentTool.type === 'eraser') {
+  if (canvasStore.currentTool.type !== 'select') {
     canvasStore.setTool({ type: 'select' })
   } else {
     canvasStore.setTool({ type: 'pen', color: '#000000', width: 2 })
+  }
+}
+
+const toggleConnectMode = () => {
+  if (canvasStore.currentTool.type === 'connect') {
+    canvasStore.setTool({ type: 'select' })
+    canvasStore.connectionStart = null
+  } else {
+    canvasStore.setTool({ type: 'connect' })
   }
 }
 </script>

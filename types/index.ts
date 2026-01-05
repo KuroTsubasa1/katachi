@@ -60,6 +60,8 @@ export interface Board {
   id: string
   name: string
   cards: NoteCard[]
+  connections: Connection[]
+  shapes: Shape[]
   backgroundColor: string
   createdAt: string
   updatedAt: string
@@ -71,8 +73,27 @@ export interface ViewPort {
   scale: number
 }
 
+export interface Connection {
+  id: string
+  fromCardId: string
+  toCardId: string
+  color: string
+  width: number
+  style: 'straight' | 'curved'
+}
+
+export interface Shape {
+  id: string
+  type: 'rectangle' | 'circle' | 'line' | 'arrow'
+  position: Position
+  size: Size
+  color: string
+  width: number
+  fill?: boolean
+}
+
 export interface Tool {
-  type: 'select' | 'pen' | 'eraser' | 'move-stroke' | 'text' | 'image' | 'column'
+  type: 'select' | 'pen' | 'eraser' | 'move-stroke' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'connect' | 'text' | 'image' | 'column'
   color?: string
   width?: number
 }

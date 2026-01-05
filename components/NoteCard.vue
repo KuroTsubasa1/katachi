@@ -3,9 +3,11 @@
     class="note-card absolute rounded-lg shadow-lg border-2 transition-shadow"
     :class="{
       'border-blue-500 dark:border-blue-400': isSelected,
-      'border-transparent': !isSelected,
+      'border-purple-500 dark:border-purple-400 ring-2 ring-purple-300 dark:ring-purple-600': canvasStore.connectionStart === card.id,
+      'border-transparent': !isSelected && canvasStore.connectionStart !== card.id,
       'shadow-2xl': isSelected,
-      'cursor-move': !isSelected || card.type !== 'drawing'
+      'cursor-move': !isSelected || card.type !== 'drawing',
+      'cursor-pointer': canvasStore.currentTool.type === 'connect'
     }"
     :style="{
       left: `${card.position.x}px`,
@@ -217,6 +219,21 @@ let sizeStart = { width: 0, height: 0 }
 
 const handleMouseDown = (e: MouseEvent) => {
   const target = e.target as HTMLElement
+
+  // Connect mode - create connections between cards
+  if (canvasStore.currentTool.type === 'connect') {
+    if (!canvasStore.connectionStart) {
+      // First click - set start card
+      canvasStore.connectionStart = props.card.id
+      console.log('Connection started from:', props.card.id)
+    } else if (canvasStore.connectionStart !== props.card.id) {
+      // Second click - create connection
+      canvasStore.addConnection(canvasStore.connectionStart, props.card.id)
+      console.log('Connection created:', canvasStore.connectionStart, '->', props.card.id)
+      canvasStore.connectionStart = null
+    }
+    return
+  }
 
   // Don't drag if clicking inside drawing canvas area
   if (props.card.type === 'drawing' && isSelected.value) {
