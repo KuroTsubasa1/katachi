@@ -23,7 +23,14 @@
 </template>
 
 <script setup lang="ts">
+import { watch } from 'vue'
 import { usePresence } from '~/composables/usePresence'
 
 const { remoteUsers } = usePresence()
+
+console.log('[PresenceIndicators] Component initialized')
+
+watch(remoteUsers, (users) => {
+  console.log('[PresenceIndicators] Remote users changed:', users.length, users)
+}, { immediate: true, deep: true })
 </script>

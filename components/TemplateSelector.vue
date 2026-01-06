@@ -50,6 +50,39 @@
           </div>
         </div>
       </div>
+
+      <!-- Name Board Dialog (nested) -->
+      <div
+        v-if="showNameDialog"
+        class="absolute inset-0 bg-black/50 flex items-center justify-center z-10"
+        @click.self="showNameDialog = false"
+      >
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Name Your Board</h3>
+          <input
+            v-model="newBoardName"
+            type="text"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Board name"
+            @keydown.enter="createFromTemplate"
+            @keydown.esc="showNameDialog = false"
+          />
+          <div class="flex gap-2 mt-4">
+            <button
+              @click="createFromTemplate"
+              class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Create Board
+            </button>
+            <button
+              @click="showNameDialog = false"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -99,16 +132,25 @@ const filteredTemplates = computed(() => {
   return templates.filter(t => t.category === selectedCategory.value)
 })
 
-async function selectTemplate(template: any) {
-  const boardName = prompt('Board name:', template.name)
-  if (!boardName) return
+const selectedTemplate = ref<any>(null)
+const showNameDialog = ref(false)
+const newBoardName = ref('')
+
+function selectTemplate(template: any) {
+  selectedTemplate.value = template
+  newBoardName.value = template.name
+  showNameDialog.value = true
+}
+
+async function createFromTemplate() {
+  if (!selectedTemplate.value || !newBoardName.value.trim()) return
 
   try {
     const response = await $fetch('/api/templates/create-from', {
       method: 'POST',
       body: {
-        templateName: template.name,
-        boardName
+        templateName: selectedTemplate.value.name,
+        boardName: newBoardName.value.trim()
       }
     })
 
@@ -123,6 +165,7 @@ async function selectTemplate(template: any) {
         }
       }
 
+      showNameDialog.value = false
       close()
     }
   } catch (error) {

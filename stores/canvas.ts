@@ -99,6 +99,37 @@ export const useCanvasStore = defineStore('canvas', {
       console.log(`Board renamed from "${oldName}" to "${newName}"`)
     },
 
+    deleteBoard(boardId: string) {
+      const boardIndex = this.boards.findIndex(b => b.id === boardId)
+      if (boardIndex === -1) {
+        console.error('Board not found:', boardId)
+        return
+      }
+
+      const boardName = this.boards[boardIndex].name
+
+      // Remove from local boards array
+      this.boards.splice(boardIndex, 1)
+
+      // If deleted board was current, switch to another board
+      if (this.currentBoard?.id === boardId) {
+        this.currentBoard = this.boards.length > 0 ? this.boards[0] : null
+      }
+
+      // Save to localStorage
+      this.saveToLocalStorage()
+
+      // Sync deletion to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('board', 'delete', {
+          id: boardId
+        })
+      }
+
+      console.log(`Board deleted: "${boardName}"`)
+    },
+
     addCard(card: Omit<NoteCard, 'id' | 'createdAt' | 'updatedAt' | 'zIndex'>): NoteCard {
       if (!this.currentBoard) throw new Error('No active board')
 

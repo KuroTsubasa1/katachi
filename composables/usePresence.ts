@@ -38,6 +38,7 @@ export const usePresence = () => {
 
     // Broadcast to server
     if (ws.isConnected.value && canvasStore.currentBoard) {
+      console.log('[Presence] Sending cursor update:', Math.round(canvasX), Math.round(canvasY))
       ws.send({
         type: 'presence_update',
         boardId: canvasStore.currentBoard.id,
@@ -52,10 +53,15 @@ export const usePresence = () => {
   const handlePresenceUpdate = (event: any) => {
     const authStore = useAuthStore()
 
+    console.log('[Presence] Received presence update:', event)
+
     // Don't show own cursor
     if (event.userId === authStore.user?.id) {
+      console.log('[Presence] Ignoring own cursor')
       return
     }
+
+    console.log('[Presence] Adding/updating remote user:', event.userId)
 
     remoteUsers.value.set(event.userId, {
       userId: event.userId,
@@ -65,6 +71,8 @@ export const usePresence = () => {
       color: event.color || '#6366F1',
       lastSeen: Date.now()
     })
+
+    console.log('[Presence] Total remote users:', remoteUsers.value.size)
   }
 
   const handlePresenceLeft = (event: any) => {
@@ -86,12 +94,18 @@ export const usePresence = () => {
   let cleanupInterval: NodeJS.Timeout | null = null
 
   onMounted(() => {
+    console.log('[Presence] Initializing presence tracking')
+
     // Register WebSocket event handlers
     ws.on('presence', handlePresenceUpdate)
     ws.on('presence_left', handlePresenceLeft)
 
+    console.log('[Presence] WebSocket event handlers registered')
+
     // Track cursor movement
     window.addEventListener('mousemove', handleMouseMove)
+
+    console.log('[Presence] Mouse tracking started')
 
     // Start cleanup interval
     cleanupInterval = setInterval(cleanupStaleUsers, 5000)

@@ -115,6 +115,23 @@ async function syncBoard(userId: string, op: SyncOperation, results: any) {
     await saveBoardHistory(op.id, userId, existing.version + 1, op.data, 'update')
 
     results.synced.push(op.id)
+  } else if (op.operation === 'delete') {
+    const existing = await db.query.boards.findFirst({
+      where: and(eq(boards.id, op.id), eq(boards.userId, userId))
+    })
+
+    if (!existing) {
+      results.errors.push({ id: op.id, message: 'Board not found or unauthorized' })
+      return
+    }
+
+    // Soft delete
+    await db.update(boards)
+      .set({ deletedAt: new Date() })
+      .where(eq(boards.id, op.id))
+
+    console.log(`Board soft deleted: ${op.id}`)
+    results.synced.push(op.id)
   }
 }
 
