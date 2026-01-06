@@ -27,18 +27,29 @@ A visual workspace application inspired by Milanote, built with modern web techn
 
 ### Collaboration
 - **Real-Time Sync**: WebSocket-based instant updates (<200ms latency)
+- **Presence Indicators**: Live cursors showing who's viewing and editing
+- **Active User Badges**: Colored avatars showing online collaborators
 - **Automatic Fallback**: Graceful degradation to polling if WebSocket unavailable
 - **Board Sharing**: Share boards with view/edit/admin permissions
 - **Passwordless Auth**: Email-based login codes (no passwords!)
 - **Multi-User Support**: Multiple users can edit simultaneously
 - **Conflict Resolution**: Server-authoritative sync with permission checks
-- **Connection Status**: Visual indicator showing connection state (real-time/polling)
 
 ### Organization
 - **Multiple Boards**: Organize work into separate boards
-- **Board Renaming**: Custom dialog with validation
-- **Board Management**: Create, rename, share, and organize boards
+- **Board Templates**: 10 pre-built templates (Kanban, Storyboard, Mind Map, Meeting Notes, Sprint Planning, Design Mood Board, Study Notes, SWOT Analysis, Roadmap, Blank)
+- **Board Management**: Create (blank or from template), rename, share, and delete boards
+- **Template Categories**: General, Planning, Creative, Business, Education
 - **Shared Board Access**: View boards shared with you
+
+### Productivity
+- **Keyboard Shortcuts**: Comprehensive shortcuts for power users
+  - Card operations: Delete, Copy (Cmd+C), Paste (Cmd+V), Duplicate (Cmd+D)
+  - View controls: Zoom (Cmd +/-/0)
+  - Navigation: Arrow keys to move cards (Shift for 50px jumps)
+  - Tool switching: V/1 (select), D/2 (pen), E/3 (eraser), C/4 (connect)
+  - Help: Press ? to see all shortcuts
+- **Context-Aware**: Shortcuts don't fire when typing in text fields
 
 ### Technical
 - **WebSocket Real-Time**: Nitro WebSocket with Redis pub/sub for instant updates
@@ -269,31 +280,38 @@ The application uses a hybrid approach for maximum reliability:
 - [x] Link cards
 - [x] Markdown cards
 - [x] Storyboard cards (multi-frame visual sequences)
+- [x] Todo list cards with checkboxes
 - [x] Card connections/arrows
 - [x] Shapes (rectangles, circles)
 - [x] **WebSocket real-time collaboration** (<200ms updates)
 - [x] Polling fallback (automatic graceful degradation)
+- [x] **Presence indicators** (live cursors with user names)
+- [x] Active user badges (colored avatars showing who's online)
 - [x] User authentication (passwordless email codes)
 - [x] Board sharing and permissions (view/edit/admin)
 - [x] Board renaming with custom dialog
+- [x] Board deletion with custom confirmation
+- [x] **Board templates** (10 pre-built: Kanban, Storyboard, Mind Map, etc.)
+- [x] **Keyboard shortcuts** (Delete, Copy/Paste, Zoom, Navigation, Tool switching)
+- [x] Keyboard shortcuts help dialog (press ?)
 - [x] Connection status indicator
 - [x] Smart sync (skips updates when actively editing)
 
 ### In Progress 🚧
-- [ ] Presence indicators (live cursors) - Infrastructure ready
 - [ ] Link card metadata preview
-- [ ] Todo list cards with checkboxes
+- [ ] Command palette (Cmd+K) with fuzzy search
 
 ### Planned 📋
-- [ ] Command palette (Cmd+K) with fuzzy search
-- [ ] Comprehensive keyboard shortcuts (copy/paste, tool switching, navigation)
-- [ ] Board templates (10 pre-built: Kanban, Storyboard, Mind Map, etc.)
 - [ ] Export to PDF/PNG
-- [ ] Mobile app
+- [ ] Mobile app (iOS/Android)
 - [ ] Comments and annotations
 - [ ] Advanced version history UI
 - [ ] Search across boards
 - [ ] Undo/Redo functionality
+- [ ] Voice/video chat integration
+- [ ] Advanced drawing tools (shapes, text on canvas)
+- [ ] Card labels and tags
+- [ ] Custom board backgrounds
 
 ## Development
 
