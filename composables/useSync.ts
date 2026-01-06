@@ -376,7 +376,8 @@ export const useSync = () => {
       ws.send({
         type: 'join_board',
         boardId,
-        userId: authStore.user?.id
+        userId: authStore.user?.id,
+        userName: authStore.user?.name || authStore.user?.email || 'Anonymous'
       })
     } else {
       console.log('[WebSocket] Cannot join - not connected. Status:', ws.status.value)

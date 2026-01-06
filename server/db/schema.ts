@@ -125,3 +125,15 @@ export const boardHistory = pgTable('board_history', {
   operation: varchar('operation', { length: 20 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 })
+
+export const boardTemplates = pgTable('board_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 50 }).notNull(),
+  thumbnail: text('thumbnail'),
+  isSystem: boolean('is_system').default(true).notNull(),
+  templateData: jsonb('template_data').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+})

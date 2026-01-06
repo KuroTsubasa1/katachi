@@ -37,6 +37,10 @@ export default defineWebSocketHandler({
           handleLeaveBoard(peer, data)
           break
 
+        case 'presence_update':
+          handlePresenceUpdate(peer, data)
+          break
+
         case 'ping':
           peer.send({ type: 'pong', timestamp: Date.now() })
           break
@@ -79,6 +83,7 @@ export default defineWebSocketHandler({
 async function handleJoinBoard(peer: any, message: any) {
   const boardId = message.boardId
   const userId = message.userId // Client sends their userId
+  const userName = message.userName // Client sends their userName
 
   if (!boardId) {
     peer.send({ type: 'error', message: 'boardId required' })
@@ -90,9 +95,12 @@ async function handleJoinBoard(peer: any, message: any) {
     peer.ctx = {}
   }
 
-  // Store the actual authenticated userId
+  // Store the actual authenticated userId and userName
   if (userId) {
     peer.ctx.userId = userId
+  }
+  if (userName) {
+    peer.ctx.userName = userName
   }
 
   console.log(`[WebSocket] Peer ${peer.id} (user: ${peer.ctx.userId}) joining board ${boardId}`)
@@ -153,4 +161,22 @@ async function handleLeaveBoard(peer: any, message: any) {
     peer.ctx.boardId = null
   }
   peer.send({ type: 'board_left' })
+}
+
+async function handlePresenceUpdate(peer: any, message: any) {
+  if (!peer.ctx?.boardId || !peer.ctx?.userId) {
+    return
+  }
+
+  try {
+    await RealtimeService.updatePresence(
+      peer.ctx.userId,
+      peer.ctx.boardId,
+      message.cursorX,
+      message.cursorY,
+      peer.ctx.userName
+    )
+  } catch (error) {
+    console.error('[WebSocket] Presence update error:', error)
+  }
 }

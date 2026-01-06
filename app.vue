@@ -1,6 +1,7 @@
 <template>
   <div id="app" class="h-screen w-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
     <NuxtPage />
+    <KeyboardShortcutsHelp :isOpen="shortcutsHelpOpen" @close="closeShortcutsHelp" />
   </div>
 </template>
 
@@ -8,12 +9,16 @@
 import { useCanvasStore } from '~/stores/canvas'
 import { useAuthStore } from '~/stores/auth'
 import { useSync } from '~/composables/useSync'
+import { useKeyboardShortcuts } from '~/composables/useKeyboardShortcuts'
 import { watch } from 'vue'
 
 const canvasStore = useCanvasStore()
 const authStore = useAuthStore()
 const router = useRouter()
 const { startSync, startPolling, stopPolling, initWebSocket, joinBoard, leaveBoard } = useSync()
+
+// Initialize keyboard shortcuts
+const { shortcutsHelpOpen, closeShortcutsHelp } = useKeyboardShortcuts()
 
 onMounted(async () => {
   // Check authentication

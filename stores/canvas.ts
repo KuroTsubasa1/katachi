@@ -31,7 +31,8 @@ export const useCanvasStore = defineStore('canvas', {
       type: 'select',
       color: '#000000',
       width: 2
-    } as Tool
+    } as Tool,
+    clipboard: null as NoteCard | null
   }),
 
   getters: {
@@ -204,6 +205,70 @@ export const useCanvasStore = defineStore('canvas', {
 
     setDropTargetColumn(columnId: string | null) {
       this.dropTargetColumnId = columnId
+    },
+
+    copyCard(cardId: string) {
+      if (!this.currentBoard) return
+
+      const card = this.currentBoard.cards.find(c => c.id === cardId)
+      if (card) {
+        this.clipboard = { ...card }
+        console.log('Card copied to clipboard:', cardId)
+      }
+    },
+
+    pasteCard(position: { x: number, y: number }) {
+      if (!this.clipboard || !this.currentBoard) return
+
+      const newCard: NoteCard = {
+        ...this.clipboard,
+        id: crypto.randomUUID(),
+        position,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = new Date().toISOString()
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
+      console.log('Card pasted:', newCard.id)
+      this.selectCard(newCard.id)
+    },
+
+    duplicateCard(cardId: string) {
+      if (!this.currentBoard) return
+
+      const card = this.currentBoard.cards.find(c => c.id === cardId)
+      if (!card) return
+
+      const newCard: NoteCard = {
+        ...card,
+        id: crypto.randomUUID(),
+        position: {
+          x: card.position.x + 20,
+          y: card.position.y + 20
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = new Date().toISOString()
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
+      console.log('Card duplicated:', cardId, '→', newCard.id)
+      this.selectCard(newCard.id)
     },
 
     moveCardToColumn(cardId: string, columnId: string) {

@@ -27,6 +27,9 @@
       <GlobalDrawingLayer />
     </div>
 
+    <!-- Presence indicators (live cursors) -->
+    <PresenceIndicators />
+
     <!-- Drawing tools (when in draw mode) -->
     <div
       v-if="canvasStore.currentTool.type !== 'select'"

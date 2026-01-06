@@ -24,13 +24,15 @@ export class RealtimeService {
   }
 
   // Update user presence (cursor position)
-  static async updatePresence(userId: string, boardId: string, cursorX: number, cursorY: number) {
+  static async updatePresence(userId: string, boardId: string, cursorX: number, cursorY: number, userName?: string) {
     const existing = await db.query.presence.findFirst({
       where: and(
         eq(presence.userId, userId),
         eq(presence.boardId, boardId)
       )
     })
+
+    let color = existing?.color
 
     if (existing) {
       await db.update(presence)
@@ -41,8 +43,9 @@ export class RealtimeService {
         })
         .where(eq(presence.id, existing.id))
     } else {
-      // Assign random color to user
-      const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`
+      // Assign random bright color to user
+      const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4']
+      color = colors[Math.floor(Math.random() * colors.length)]
 
       await db.insert(presence).values({
         userId,
@@ -54,12 +57,14 @@ export class RealtimeService {
       })
     }
 
-    // Broadcast cursor update
+    // Broadcast cursor update with user info
     await this.publishBoardChange(boardId, {
       type: 'presence',
       userId,
+      userName: userName || 'Anonymous',
       cursorX,
-      cursorY
+      cursorY,
+      color
     })
   }
 
