@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { NoteCard, Board, ViewPort, Tool, Shape, Connection } from '~/types'
+import { useSync } from '~/composables/useSync'
 
 const STORAGE_KEY = 'katachi_boards'
 const VIEWPORT_KEY = 'katachi_viewport'
