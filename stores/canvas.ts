@@ -146,11 +146,20 @@ export const useCanvasStore = defineStore('canvas', {
     deleteCard(cardId: string) {
       if (!this.currentBoard) return
 
+      const cardToDelete = this.currentBoard.cards.find(c => c.id === cardId)
+      if (!cardToDelete) return
+
       this.currentBoard.cards = this.currentBoard.cards.filter(c => c.id !== cardId)
       this.currentBoard.updatedAt = new Date().toISOString()
 
       if (this.selectedCardId === cardId) {
         this.selectedCardId = null
+      }
+
+      // Sync deletion to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'delete', { id: cardId, boardId: this.currentBoard.id })
       }
     },
 

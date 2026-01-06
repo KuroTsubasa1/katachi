@@ -245,9 +245,25 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
 
     results.synced.push(op.id)
   } else if (op.operation === 'delete') {
+    const cardToDelete = await db.query.cards.findFirst({
+      where: eq(cards.id, op.id)
+    })
+
+    if (!cardToDelete) {
+      // Card already deleted or doesn't exist
+      results.synced.push(op.id)
+      return
+    }
+
+    // Soft delete the card
     await db.update(cards)
       .set({ deletedAt: new Date() })
       .where(eq(cards.id, op.id))
+
+    // Update board timestamp
+    await db.update(boards)
+      .set({ updatedAt: new Date() })
+      .where(eq(boards.id, cardToDelete.boardId))
 
     results.synced.push(op.id)
   }
