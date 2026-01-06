@@ -46,6 +46,7 @@ export const cards = pgTable('cards', {
   columnCards: jsonb('column_cards'),
   tableData: jsonb('table_data'),
   todoData: jsonb('todo_data'),
+  storyboardData: jsonb('storyboard_data'),
   version: integer('version').default(1).notNull(),
   deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').notNull(),

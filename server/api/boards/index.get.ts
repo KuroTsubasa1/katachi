@@ -98,6 +98,7 @@ export default defineEventHandler(async (event) => {
       columnCards: card.columnCards,
       tableData: card.tableData,
       todoData: card.todoData,
+      storyboardData: card.storyboardData,
       createdAt: card.createdAt.toISOString(),
       updatedAt: card.updatedAt.toISOString()
     })),

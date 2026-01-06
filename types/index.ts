@@ -30,9 +30,21 @@ export interface TodoData {
   items: TodoItem[]
 }
 
+export interface StoryboardFrame {
+  id: string
+  imageUrl?: string
+  caption: string
+  notes?: string
+}
+
+export interface StoryboardData {
+  title: string
+  frames: StoryboardFrame[]
+}
+
 export interface NoteCard {
   id: string
-  type: 'text' | 'richtext' | 'image' | 'column' | 'drawing' | 'audio' | 'video' | 'map' | 'link' | 'table' | 'todo' | 'markdown'
+  type: 'text' | 'richtext' | 'image' | 'column' | 'drawing' | 'audio' | 'video' | 'map' | 'link' | 'table' | 'todo' | 'markdown' | 'storyboard'
   position: Position
   size: Size
   content: string
@@ -43,6 +55,7 @@ export interface NoteCard {
   columnCards?: string[]
   tableData?: TableData
   todoData?: TodoData
+  storyboardData?: StoryboardData
   markdown?: string
   url?: string
   audioUrl?: string

@@ -503,6 +503,43 @@ export const useCanvasStore = defineStore('canvas', {
       }
 
       return newCard
+    },
+
+    addStoryboardCard(position: { x: number, y: number }): NoteCard {
+      if (!this.currentBoard) throw new Error('No active board')
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      const now = new Date().toISOString()
+      const newCard: NoteCard = {
+        id: crypto.randomUUID(),
+        type: 'storyboard',
+        position,
+        size: { width: 600, height: 400 },
+        content: 'Storyboard',
+        storyboardData: {
+          title: 'New Storyboard',
+          frames: [
+            { id: crypto.randomUUID(), caption: 'Frame 1', notes: '' },
+            { id: crypto.randomUUID(), caption: 'Frame 2', notes: '' },
+            { id: crypto.randomUUID(), caption: 'Frame 3', notes: '' }
+          ]
+        },
+        color: '#ffffff',
+        zIndex: maxZIndex + 1,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = now
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
+      return newCard
     }
   }
 })

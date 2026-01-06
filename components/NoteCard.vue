@@ -116,6 +116,12 @@
         @update:markdown="updateMarkdown"
       />
 
+      <!-- Storyboard Card -->
+      <StoryboardCard
+        v-else-if="card.type === 'storyboard'"
+        :card="card"
+      />
+
       <!-- Todo List Card -->
       <TodoListCard
         v-else-if="card.type === 'todo'"

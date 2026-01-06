@@ -164,6 +164,7 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
       columnCards: op.data.columnCards,
       tableData: op.data.tableData,
       todoData: op.data.todoData,
+      storyboardData: op.data.storyboardData,
       createdAt: new Date(op.data.createdAt),
       updatedAt: new Date(op.data.updatedAt),
       version: 1
@@ -201,6 +202,7 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
         columnCards: op.data.columnCards,
         tableData: op.data.tableData,
         todoData: op.data.todoData,
+        storyboardData: op.data.storyboardData,
         createdAt: new Date(op.data.createdAt),
         updatedAt: new Date(op.data.updatedAt),
         version: 1
@@ -231,6 +233,7 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
         columnCards: op.data.columnCards,
         tableData: op.data.tableData,
         todoData: op.data.todoData,
+        storyboardData: op.data.storyboardData,
         updatedAt: new Date(),
         version: existing.version + 1
       })
