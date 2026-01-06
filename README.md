@@ -26,11 +26,13 @@ A visual workspace application inspired by Milanote, built with modern web techn
 - **Card Customization**: Resize, recolor, and position any card
 
 ### Collaboration
-- **Real-Time Sync**: 5-second polling updates across users
+- **Real-Time Sync**: WebSocket-based instant updates (<200ms latency)
+- **Automatic Fallback**: Graceful degradation to polling if WebSocket unavailable
 - **Board Sharing**: Share boards with view/edit/admin permissions
 - **Passwordless Auth**: Email-based login codes (no passwords!)
 - **Multi-User Support**: Multiple users can edit simultaneously
 - **Conflict Resolution**: Server-authoritative sync with permission checks
+- **Connection Status**: Visual indicator showing connection state (real-time/polling)
 
 ### Organization
 - **Multiple Boards**: Organize work into separate boards
@@ -39,10 +41,13 @@ A visual workspace application inspired by Milanote, built with modern web techn
 - **Shared Board Access**: View boards shared with you
 
 ### Technical
+- **WebSocket Real-Time**: Nitro WebSocket with Redis pub/sub for instant updates
 - **Responsive Design**: Clean UI with Tailwind CSS and dark mode
 - **Docker Support**: Full stack deployment with Docker Compose
 - **PostgreSQL Database**: Persistent storage for all data
+- **Redis Pub/Sub**: Event broadcasting for real-time collaboration
 - **Redis Sessions**: Fast session management
+- **Auto-Reconnect**: Exponential backoff with graceful fallback to polling
 - **Version History**: Track changes to boards and cards
 - **Offline Support**: LocalStorage fallback when offline
 
@@ -156,6 +161,8 @@ mila_note/
 ### Backend
 - **Runtime**: Node 20 (Alpine)
 - **API**: Nuxt Server Routes + h3
+- **WebSocket**: Nitro WebSocket with crossws integration
+- **Real-Time**: Redis pub/sub for event broadcasting
 - **Database**: PostgreSQL 16 (Alpine)
 - **ORM**: Drizzle ORM 0.45
 - **Cache**: Redis 7 (Alpine) + ioredis 5.9
@@ -212,11 +219,35 @@ SMTP_FROM=noreply@domain.com
 
 ## Collaboration
 
-### Real-Time Sync
-- **Automatic Polling**: Updates every 5 seconds
-- **Bidirectional Sync**: All users see changes from others
-- **Server Authority**: Server version is always correct
-- **Conflict-Free**: Permission checks prevent unauthorized edits
+### Real-Time Sync Architecture
+
+**WebSocket-First with Polling Fallback:**
+
+The application uses a hybrid approach for maximum reliability:
+
+1. **Primary: WebSocket** (Instant Updates)
+   - Latency: <200ms for all operations
+   - Protocol: ws:// (or wss:// for HTTPS)
+   - Auto-reconnect with exponential backoff
+   - Heartbeat ping every 30 seconds
+
+2. **Fallback: Polling** (Reliable Updates)
+   - Activates automatically if WebSocket fails
+   - 5-second intervals
+   - Smart: Skips when WebSocket connected
+   - Works through all proxies and firewalls
+
+**Event Broadcasting:**
+- Events published to Redis pub/sub
+- Board-specific channels (`board:{boardId}`)
+- Only sends to subscribed users
+- Filters out echo (won't send back to originator)
+
+**Supported Events:**
+- `card_created` - New card added
+- `card_updated` - Card content/position changed
+- `card_deleted` - Card removed
+- Real-time across all 13 card types
 
 ### Board Sharing
 - **Share by Email**: Enter collaborator's email address
@@ -230,34 +261,39 @@ SMTP_FROM=noreply@domain.com
 ## Roadmap
 
 ### Completed ✅
-- [x] Image card support
+- [x] Image card support (base64, synced)
 - [x] Rich text editor (WYSIWYG with TipTap)
-- [x] Column/Kanban boards
+- [x] Column/Kanban boards with drag-drop
 - [x] Drawing functionality
 - [x] Draw on images
 - [x] Link cards
 - [x] Markdown cards
+- [x] Storyboard cards (multi-frame visual sequences)
 - [x] Card connections/arrows
 - [x] Shapes (rectangles, circles)
-- [x] Real-time collaboration
-- [x] User authentication (passwordless)
-- [x] Board sharing and permissions
-- [x] Board renaming
+- [x] **WebSocket real-time collaboration** (<200ms updates)
+- [x] Polling fallback (automatic graceful degradation)
+- [x] User authentication (passwordless email codes)
+- [x] Board sharing and permissions (view/edit/admin)
+- [x] Board renaming with custom dialog
+- [x] Connection status indicator
+- [x] Smart sync (skips updates when actively editing)
 
 ### In Progress 🚧
-- [ ] WebSocket real-time updates (replacing polling)
+- [ ] Presence indicators (live cursors) - Infrastructure ready
 - [ ] Link card metadata preview
 - [ ] Todo list cards with checkboxes
 
 ### Planned 📋
+- [ ] Command palette (Cmd+K) with fuzzy search
+- [ ] Comprehensive keyboard shortcuts (copy/paste, tool switching, navigation)
+- [ ] Board templates (10 pre-built: Kanban, Storyboard, Mind Map, etc.)
 - [ ] Export to PDF/PNG
 - [ ] Mobile app
 - [ ] Comments and annotations
 - [ ] Advanced version history UI
-- [ ] Board templates
-- [ ] Presence indicators (show active users)
-- [ ] Keyboard shortcuts
 - [ ] Search across boards
+- [ ] Undo/Redo functionality
 
 ## Development
 
@@ -348,9 +384,16 @@ docker-compose down -v
 - **Database connection errors**: Check `DATABASE_URL` in Docker environment variables
 - **Redis connection errors**: Ensure Redis service is running with `docker-compose ps`
 
+### WebSocket Issues
+- **Connection shows "Polling" instead of "Real-time"**: Check browser console for WebSocket errors
+- **WebSocket fails to connect**: Verify Redis is running with `docker-compose ps`
+- **Connection drops frequently**: Check network/proxy settings, WebSocket auto-reconnects
+- **Updates delayed**: If WebSocket shows connected but updates slow, check server logs for Redis errors
+
 ### Performance
-- **Slow updates**: Real-time sync uses 5-second polling (consider reducing `NUXT_PUBLIC_SYNC_DEBOUNCE_MS`)
-- **Too many saves**: Polling interval can be adjusted in `/composables/useSync.ts` (default 5000ms)
+- **Latency**: WebSocket provides <200ms updates, polling provides 0-5 second updates
+- **Connection overhead**: Polling uses less memory but more bandwidth than WebSocket
+- **Sync debounce**: Client batches rapid changes every 500ms before sending to server
 
 ## Environment Variables
 
@@ -403,11 +446,14 @@ NUXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### Technical Decisions
 
-- **Polling vs WebSockets**: Currently uses 5-second polling for simplicity (WebSockets planned)
+- **WebSocket + Polling Hybrid**: WebSocket for instant updates with automatic fallback to polling
 - **Server-Authoritative**: Server is source of truth for conflict-free collaboration
+- **Redis Pub/Sub**: Event broadcasting via Redis for scalable real-time updates
 - **Optimistic Updates**: Local changes render immediately, sync asynchronously
+- **Smart Polling**: Skips updates when WebSocket connected or user actively editing
 - **Deep Copy Reactivity**: Forces Vue to detect all nested state changes
 - **Version-Based Keys**: Card components re-render when board version changes
+- **Auto-Reconnect**: Exponential backoff (1s → 30s max) ensures reliability
 
 ## Contributing
 
