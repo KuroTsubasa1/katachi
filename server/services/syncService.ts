@@ -1,6 +1,7 @@
 import { db } from '../db'
-import { boards, cards, connections, shapes, cardHistory, boardHistory } from '../db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { boards, cards, connections, shapes, cardHistory, boardHistory, boardShares } from '../db/schema'
+import { eq, and, isNull, or } from 'drizzle-orm'
+import { getUserBoardPermission } from './sharingService'
 
 interface SyncOperation {
   type: 'board' | 'card' | 'connection' | 'shape'
@@ -117,15 +118,38 @@ async function syncBoard(userId: string, op: SyncOperation, results: any) {
 }
 
 async function syncCard(userId: string, op: SyncOperation, results: any) {
+  // Verify user has permission to modify this board
+  const boardId = op.data.boardId || op.data.board_id
+
+  if (!boardId) {
+    console.error('[Sync] Card operation missing boardId:', op)
+    results.errors.push({
+      id: op.id,
+      message: 'Card operation missing boardId'
+    })
+    return
+  }
+
+  const permission = await getUserBoardPermission(userId, boardId)
+
+  if (!permission || permission === 'view') {
+    console.error('[Sync] Permission denied for user', userId, 'on board', boardId, '- permission:', permission)
+    results.errors.push({
+      id: op.id,
+      message: `Insufficient permissions to modify board (${permission || 'none'})`
+    })
+    return
+  }
+
   if (op.operation === 'create') {
     await db.insert(cards).values({
       id: op.id,
       boardId: op.data.boardId || op.data.board_id,
       type: op.data.type,
-      positionX: op.data.position?.x || 0,
-      positionY: op.data.position?.y || 0,
-      width: op.data.size?.width || 200,
-      height: op.data.size?.height || 150,
+      positionX: Math.round(op.data.position?.x || 0),
+      positionY: Math.round(op.data.position?.y || 0),
+      width: Math.round(op.data.size?.width || 200),
+      height: Math.round(op.data.size?.height || 150),
       content: op.data.content,
       htmlContent: op.data.htmlContent,
       imageUrl: op.data.imageUrl,
@@ -154,16 +178,46 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
     })
 
     if (!existing) {
-      results.errors.push({ id: op.id, message: 'Card not found' })
+      // Card doesn't exist - create it instead of updating
+      console.log(`[Sync] Card ${op.id} not found, creating instead of updating`)
+      await db.insert(cards).values({
+        id: op.id,
+        boardId: op.data.boardId || op.data.board_id,
+        type: op.data.type,
+        positionX: Math.round(op.data.position?.x || 0),
+        positionY: Math.round(op.data.position?.y || 0),
+        width: Math.round(op.data.size?.width || 200),
+        height: Math.round(op.data.size?.height || 150),
+        content: op.data.content,
+        htmlContent: op.data.htmlContent,
+        imageUrl: op.data.imageUrl,
+        url: op.data.url,
+        audioUrl: op.data.audioUrl,
+        videoUrl: op.data.videoUrl,
+        mapLocation: op.data.mapLocation,
+        markdown: op.data.markdown,
+        color: op.data.color,
+        zIndex: op.data.zIndex,
+        drawingData: op.data.drawingData,
+        columnCards: op.data.columnCards,
+        tableData: op.data.tableData,
+        todoData: op.data.todoData,
+        createdAt: new Date(op.data.createdAt),
+        updatedAt: new Date(op.data.updatedAt),
+        version: 1
+      })
+
+      await saveCardHistory(op.id, op.data.boardId || op.data.board_id, userId, 1, op.data, 'create')
+      results.synced.push(op.id)
       return
     }
 
     await db.update(cards)
       .set({
-        positionX: op.data.position?.x,
-        positionY: op.data.position?.y,
-        width: op.data.size?.width,
-        height: op.data.size?.height,
+        positionX: Math.round(op.data.position?.x),
+        positionY: Math.round(op.data.position?.y),
+        width: Math.round(op.data.size?.width),
+        height: Math.round(op.data.size?.height),
         content: op.data.content,
         htmlContent: op.data.htmlContent,
         color: op.data.color,
@@ -191,6 +245,17 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
 }
 
 async function syncConnection(userId: string, op: SyncOperation, results: any) {
+  // Verify user has permission to modify this board
+  const permission = await getUserBoardPermission(userId, op.data.boardId)
+
+  if (!permission || permission === 'view') {
+    results.errors.push({
+      id: op.id,
+      message: 'Insufficient permissions to modify board'
+    })
+    return
+  }
+
   if (op.operation === 'create') {
     await db.insert(connections).values({
       id: op.id,
@@ -208,15 +273,26 @@ async function syncConnection(userId: string, op: SyncOperation, results: any) {
 }
 
 async function syncShape(userId: string, op: SyncOperation, results: any) {
+  // Verify user has permission to modify this board
+  const permission = await getUserBoardPermission(userId, op.data.boardId)
+
+  if (!permission || permission === 'view') {
+    results.errors.push({
+      id: op.id,
+      message: 'Insufficient permissions to modify board'
+    })
+    return
+  }
+
   if (op.operation === 'create') {
     await db.insert(shapes).values({
       id: op.id,
       boardId: op.data.boardId,
       type: op.data.type,
-      positionX: op.data.position.x,
-      positionY: op.data.position.y,
-      width: op.data.size.width,
-      height: op.data.size.height,
+      positionX: Math.round(op.data.position.x),
+      positionY: Math.round(op.data.position.y),
+      width: Math.round(op.data.size.width),
+      height: Math.round(op.data.size.height),
       color: op.data.color,
       strokeWidth: op.data.width,
       fill: op.data.fill || false,

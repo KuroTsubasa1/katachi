@@ -58,6 +58,7 @@ export interface NoteCard {
 
 export interface Board {
   id: string
+  userId?: string
   name: string
   cards: NoteCard[]
   connections: Connection[]

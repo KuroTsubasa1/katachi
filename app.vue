@@ -13,6 +13,7 @@ import { watch } from 'vue'
 const canvasStore = useCanvasStore()
 const authStore = useAuthStore()
 const router = useRouter()
+const { startSync, startPolling, stopPolling } = useSync()
 
 onMounted(async () => {
   // Check authentication
@@ -27,10 +28,10 @@ onMounted(async () => {
   // Load from localStorage (offline fallback)
   canvasStore.loadFromLocalStorage()
 
-  // If authenticated, sync with server
+  // If authenticated, sync with server and start polling
   if (authStore.isAuthenticated) {
-    const { startSync } = useSync()
     await startSync()
+    startPolling() // Start polling for updates every 5 seconds
   }
 
   // Create default board if none exist
@@ -53,5 +54,10 @@ onMounted(async () => {
     },
     { deep: true }
   )
+})
+
+onUnmounted(() => {
+  // Clean up polling when component unmounts
+  stopPolling()
 })
 </script>

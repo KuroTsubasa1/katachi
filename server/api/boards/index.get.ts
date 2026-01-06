@@ -72,9 +72,15 @@ export default defineEventHandler(async (event) => {
     })
   )
 
+  console.log(`[Boards API] User ${user.email} - Returning ${boardsWithRelations.length} boards`)
+  boardsWithRelations.forEach(b => {
+    console.log(`  - Board: ${b.name} (${b.id}) - ${b.cards.length} cards, ${b.connections.length} connections, ${b.shapes.length} shapes`)
+  })
+
   // Transform to client format
   const transformedBoards = boardsWithRelations.map(board => ({
     id: board.id,
+    userId: board.userId,
     name: board.name,
     backgroundColor: board.backgroundColor || '#f5f5f5',
     cards: board.cards.map(card => ({

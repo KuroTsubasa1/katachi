@@ -141,18 +141,90 @@ The dialog follows the application's design system:
 - Smooth transitions and hover effects
 - Responsive and accessible
 
+## Board Sharing
+
+Boards can be shared with other users with different permission levels.
+
+### Sharing a Board
+
+1. Select the board you want to share
+2. Click the share button (🔗) in the sidebar
+3. Enter the recipient's email address
+4. Select permission level:
+   - **View**: Can see board content only
+   - **Edit**: Can modify cards, connections, shapes
+   - **Admin**: Can share board with others
+5. Click "Share Board"
+
+### How Shared Boards Appear
+
+When a board is shared:
+- It appears in the recipient's board list automatically
+- Shared board link format: `http://localhost:3000/?board=BOARD_ID`
+- Recipient can click the link to open the board directly
+- Board is loaded with all content (cards, connections, shapes)
+
+### Real-Time Updates
+
+The application uses **polling** to keep shared boards synchronized:
+
+- Polls server every 5 seconds for board updates
+- Automatically fetches changes from shared boards
+- Uses timestamp comparison to keep newest version
+- Preserves local changes on owned boards
+- Server version takes priority for shared boards
+
+### Technical Implementation
+
+```mermaid
+graph TB
+    A[User A owns Board] --> B[User A shares with User B]
+    B --> C[Board added to board_shares table]
+    C --> D[User B's /api/boards includes shared board]
+
+    E[User A makes changes] --> F[Changes sync to server]
+    F --> G[Server updates board.updatedAt]
+
+    H[User B polls every 5s] --> I[Fetch /api/boards]
+    I --> J{Server updatedAt > Local?}
+    J -->|Yes| K[Update User B's local board]
+    J -->|No| L[Keep User B's local version]
+
+    K --> M[User B sees changes]
+```
+
+### Polling Behavior
+
+**On Authentication**:
+- Initial sync fetches all boards (owned + shared)
+- Polling starts automatically
+- Runs every 5 seconds
+
+**Smart Merging**:
+- Owned boards: Local changes take priority (if newer)
+- Shared boards: Server changes take priority (if newer)
+- Preserves current board selection
+- Adds new shared boards automatically
+
+**Cleanup**:
+- Polling stops when user logs out
+- Polling stops when component unmounts
+- Prevents memory leaks
+
 ## Future Enhancements
 
 Potential improvements to board management:
 
-1. **Duplicate Detection**: Prevent or warn about duplicate board names
-2. **Inline Editing**: Allow renaming directly in the sidebar
-3. **Undo/Redo**: Integrate with version history system
-4. **Bulk Operations**: Rename multiple boards at once
-5. **Templates**: Create boards from templates
-6. **Favorites**: Mark boards as favorites for quick access
-7. **Sorting**: Custom sort order for boards
-8. **Archive**: Soft delete boards instead of permanent deletion
+1. **WebSocket Real-Time**: Replace polling with WebSocket for instant updates
+2. **Duplicate Detection**: Prevent or warn about duplicate board names
+3. **Inline Editing**: Allow renaming directly in the sidebar
+4. **Undo/Redo**: Integrate with version history system
+5. **Bulk Operations**: Rename multiple boards at once
+6. **Templates**: Create boards from templates
+7. **Favorites**: Mark boards as favorites for quick access
+8. **Sorting**: Custom sort order for boards
+9. **Archive**: Soft delete boards instead of permanent deletion
+10. **Presence Indicators**: Show who's viewing/editing shared boards
 
 ## Related Files
 
