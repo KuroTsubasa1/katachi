@@ -125,11 +125,49 @@ export const useSync = () => {
     try {
       const response = await $fetch('/api/boards')
       if (response.boards) {
-        // Merge server data with local data
-        // For now, server takes precedence
-        canvasStore.boards = response.boards
-        if (response.boards.length > 0) {
-          canvasStore.currentBoard = response.boards[0]
+        // Merge server data with local data intelligently
+        const serverBoards = response.boards
+        const localBoards = canvasStore.boards
+        const currentBoardId = canvasStore.currentBoard?.id
+
+        // Create a map of local boards for quick lookup
+        const localBoardMap = new Map(localBoards.map(b => [b.id, b]))
+
+        // Merge: keep newer version based on updatedAt timestamp
+        const mergedBoards = serverBoards.map(serverBoard => {
+          const localBoard = localBoardMap.get(serverBoard.id)
+
+          if (!localBoard) {
+            // New board from server
+            return serverBoard
+          }
+
+          // Compare timestamps - keep newer version
+          const serverTime = new Date(serverBoard.updatedAt).getTime()
+          const localTime = new Date(localBoard.updatedAt).getTime()
+
+          return localTime > serverTime ? localBoard : serverBoard
+        })
+
+        // Add any local boards that don't exist on server yet
+        localBoards.forEach(localBoard => {
+          if (!serverBoards.find(sb => sb.id === localBoard.id)) {
+            mergedBoards.push(localBoard)
+          }
+        })
+
+        canvasStore.boards = mergedBoards
+
+        // Preserve current board selection if it still exists
+        if (currentBoardId) {
+          const existingBoard = mergedBoards.find(b => b.id === currentBoardId)
+          if (existingBoard) {
+            canvasStore.currentBoard = existingBoard
+          } else if (mergedBoards.length > 0) {
+            canvasStore.currentBoard = mergedBoards[0]
+          }
+        } else if (mergedBoards.length > 0 && !canvasStore.currentBoard) {
+          canvasStore.currentBoard = mergedBoards[0]
         }
       }
     } catch (error) {
