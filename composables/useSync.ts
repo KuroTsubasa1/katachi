@@ -226,6 +226,24 @@ export const useSync = () => {
           if (currentBoardId) {
             const updatedCurrentBoard = mergedBoards.find(b => b.id === currentBoardId)
             if (updatedCurrentBoard) {
+              // Only update if server version is actually newer
+              const currentLocal = canvasStore.currentBoard
+              if (currentLocal) {
+                const serverTime = new Date(updatedCurrentBoard.updatedAt).getTime()
+                const localTime = new Date(currentLocal.updatedAt).getTime()
+
+                // Don't update if we have pending sync operations (user is actively editing)
+                if (syncQueue.value.length > 0) {
+                  console.log('[Polling] Skipping update - pending sync operations')
+                  return
+                }
+
+                // Only update if server is actually newer
+                if (serverTime <= localTime) {
+                  return
+                }
+              }
+
               // Deep copy and force re-render
               canvasStore.$patch({
                 currentBoard: JSON.parse(JSON.stringify(updatedCurrentBoard)),
