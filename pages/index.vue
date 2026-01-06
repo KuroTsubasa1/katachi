@@ -506,29 +506,37 @@ const handleImageUpload = async (event: Event) => {
   const file = input.files?.[0]
   if (!file) return
 
-  // Create object URL for the image
-  const imageUrl = URL.createObjectURL(file)
+  console.log('[Image] Uploading file:', file.name, 'Size:', file.size, 'bytes')
 
-  // Create an image to get dimensions
-  const img = new Image()
-  img.onload = () => {
-    const maxSize = 400
-    let width = img.width
-    let height = img.height
+  // Convert to base64 data URL for persistence
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const imageUrl = e.target?.result as string
+    console.log('[Image] Base64 generated, length:', imageUrl.length, 'First 100 chars:', imageUrl.substring(0, 100))
 
-    if (width > maxSize || height > maxSize) {
-      const ratio = Math.min(maxSize / width, maxSize / height)
-      width = width * ratio
-      height = height * ratio
+    // Create an image to get dimensions
+    const img = new Image()
+    img.onload = () => {
+      const maxSize = 400
+      let width = img.width
+      let height = img.height
+
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height)
+        width = width * ratio
+        height = height * ratio
+      }
+
+      console.log('[Image] Creating card with imageUrl length:', imageUrl.length)
+      canvasStore.addImageCard(
+        getRandomPosition(),
+        imageUrl,
+        { width, height }
+      )
     }
-
-    canvasStore.addImageCard(
-      getRandomPosition(),
-      imageUrl,
-      { width, height }
-    )
+    img.src = imageUrl
   }
-  img.src = imageUrl
+  reader.readAsDataURL(file)
 
   // Reset input
   input.value = ''

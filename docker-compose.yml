@@ -7,21 +7,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://katachi:katachi_password@db:5432/katachi_db
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
-      - SESSION_SECRET=katachi-super-secret-session-key-change-in-production-2024
-      - SESSION_MAX_AGE=604800000
-      - NUXT_PUBLIC_ENABLE_SYNC=true
-      - NUXT_PUBLIC_SYNC_DEBOUNCE_MS=500
-      - SMTP_HOST=mail.lasseharm.space
-      - SMTP_PORT=465
-      - SMTP_SECURE=true
-      - SMTP_USER=service@3dps.space
-      - SMTP_PASS=Yd@47rS4#^#6rw9bnJyn
-      - SMTP_FROM=service@3dps.space
-      - NUXT_PUBLIC_APP_URL=http://localhost:3000
     restart: unless-stopped
     volumes:
       - ./data:/app/data

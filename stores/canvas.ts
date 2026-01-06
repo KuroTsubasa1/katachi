@@ -425,6 +425,14 @@ export const useCanvasStore = defineStore('canvas', {
 
       this.currentBoard.cards.push(newCard)
       this.currentBoard.updatedAt = now
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        console.log('[Image] Queueing sync with imageUrl length:', imageUrl.length)
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
       return newCard
     },
 
@@ -448,6 +456,13 @@ export const useCanvasStore = defineStore('canvas', {
 
       this.currentBoard.cards.push(newCard)
       this.currentBoard.updatedAt = now
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
       return newCard
     },
 
@@ -471,6 +486,13 @@ export const useCanvasStore = defineStore('canvas', {
 
       this.currentBoard.cards.push(newCard)
       this.currentBoard.updatedAt = now
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
       return newCard
     }
   }
