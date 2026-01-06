@@ -244,6 +244,11 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
       })
       .where(eq(cards.id, op.id))
 
+    // Also update the board's updatedAt timestamp
+    await db.update(boards)
+      .set({ updatedAt: new Date() })
+      .where(eq(boards.id, existing.boardId))
+
     await saveCardHistory(op.id, existing.boardId, userId, existing.version + 1, op.data, 'update')
 
     results.synced.push(op.id)

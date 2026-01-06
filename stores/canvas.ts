@@ -10,6 +10,7 @@ export const useCanvasStore = defineStore('canvas', {
   state: () => ({
     currentBoard: null as Board | null,
     boards: [] as Board[],
+    boardVersion: 0, // Increment this to force re-renders
     viewport: {
       x: 0,
       y: 0,

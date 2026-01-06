@@ -175,20 +175,29 @@ export const useSync = () => {
           }
         })
 
-        canvasStore.boards = mergedBoards
-
         // Preserve current board selection if it still exists
         if (currentBoardId) {
           const existingBoard = mergedBoards.find(b => b.id === currentBoardId)
           if (existingBoard) {
             console.log(`[StartSync] Setting current board: ${existingBoard.name} with ${existingBoard.cards?.length || 0} cards`)
-            // Deep copy for Vue reactivity
-            canvasStore.currentBoard = JSON.parse(JSON.stringify(existingBoard))
+            // Use $patch for proper Pinia reactivity
+            canvasStore.$patch({
+              boards: mergedBoards,
+              currentBoard: JSON.parse(JSON.stringify(existingBoard))
+            })
           } else if (mergedBoards.length > 0) {
-            canvasStore.currentBoard = JSON.parse(JSON.stringify(mergedBoards[0]))
+            canvasStore.$patch({
+              boards: mergedBoards,
+              currentBoard: JSON.parse(JSON.stringify(mergedBoards[0]))
+            })
           }
         } else if (mergedBoards.length > 0 && !canvasStore.currentBoard) {
-          canvasStore.currentBoard = JSON.parse(JSON.stringify(mergedBoards[0]))
+          canvasStore.$patch({
+            boards: mergedBoards,
+            currentBoard: JSON.parse(JSON.stringify(mergedBoards[0]))
+          })
+        } else {
+          canvasStore.$patch({ boards: mergedBoards })
         }
       }
     } catch (error) {
@@ -211,14 +220,21 @@ export const useSync = () => {
       try {
         const response = await $fetch('/api/boards')
         if (response.boards) {
+          const currentBoardId = canvasStore.currentBoard?.id
+
           console.log('[Polling] Received boards from server:', response.boards.length)
           response.boards.forEach(b => {
             console.log(`  - ${b.name}: ${b.cards?.length || 0} cards`)
+            if (b.id === currentBoardId) {
+              console.log('    Current board cards detail:')
+              b.cards?.forEach((c, i) => {
+                console.log(`      Card ${i}: type=${c.type}, content="${c.content?.substring(0, 30)}", imageUrl="${c.imageUrl?.substring(0, 30)}"`)
+              })
+            }
           })
 
           const serverBoards = response.boards
           const localBoards = canvasStore.boards
-          const currentBoardId = canvasStore.currentBoard?.id
 
           // Create a map of local boards
           const localBoardMap = new Map(localBoards.map(b => [b.id, b]))
@@ -251,17 +267,39 @@ export const useSync = () => {
 
           console.log(`[Polling] Merged boards count: ${mergedBoards.length}`)
 
-          // Update boards array
-          canvasStore.boards = mergedBoards
+          // Update boards array using $patch for proper reactivity
+          canvasStore.$patch({
+            boards: mergedBoards
+          })
 
           // Force update current board to trigger reactivity
           if (currentBoardId) {
             const updatedCurrentBoard = mergedBoards.find(b => b.id === currentBoardId)
             if (updatedCurrentBoard) {
               console.log(`[Polling] Updating current board: ${updatedCurrentBoard.name} with ${updatedCurrentBoard.cards?.length || 0} cards`)
+              console.log('[Polling] Card contents before assignment:')
+              updatedCurrentBoard.cards?.forEach((c, i) => {
+                console.log(`  Card ${i}: "${c.content?.substring(0, 30)}"`)
+              })
 
               // Deep copy to trigger Vue reactivity for nested objects
-              canvasStore.currentBoard = JSON.parse(JSON.stringify(updatedCurrentBoard))
+              const deepCopy = JSON.parse(JSON.stringify(updatedCurrentBoard))
+
+              console.log('[Polling] Card contents after deep copy:')
+              deepCopy.cards?.forEach((c, i) => {
+                console.log(`  Card ${i}: "${c.content?.substring(0, 30)}"`)
+              })
+
+              // Use Pinia's $patch for proper reactivity
+              canvasStore.$patch({
+                currentBoard: deepCopy,
+                boardVersion: canvasStore.boardVersion + 1  // Force component re-render
+              })
+
+              console.log('[Polling] Current board set (version: ' + canvasStore.boardVersion + '). Verifying canvasStore.currentBoard:')
+              canvasStore.currentBoard?.cards?.forEach((c, i) => {
+                console.log(`  Card ${i}: "${c.content?.substring(0, 30)}"`)
+              })
             } else {
               console.log(`[Polling] Current board ${currentBoardId} not found in merged boards`)
             }

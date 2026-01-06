@@ -19,7 +19,7 @@
 
       <NoteCard
         v-for="card in canvasStore.sortedCards"
-        :key="card.id"
+        :key="`${card.id}-${canvasStore.boardVersion}`"
         :card="card"
       />
 
