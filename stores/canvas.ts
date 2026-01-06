@@ -69,6 +69,33 @@ export const useCanvasStore = defineStore('canvas', {
       return board
     },
 
+    renameBoard(boardId: string, newName: string) {
+      const board = this.boards.find(b => b.id === boardId)
+      if (!board) {
+        console.error('Board not found:', boardId)
+        return
+      }
+
+      const oldName = board.name
+      board.name = newName
+      board.updatedAt = new Date().toISOString()
+
+      // Save to localStorage
+      this.saveToLocalStorage()
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('board', 'update', {
+          id: board.id,
+          name: board.name,
+          updatedAt: board.updatedAt
+        })
+      }
+
+      console.log(`Board renamed from "${oldName}" to "${newName}"`)
+    },
+
     addCard(card: Omit<NoteCard, 'id' | 'createdAt' | 'updatedAt' | 'zIndex'>): NoteCard {
       if (!this.currentBoard) throw new Error('No active board')
 

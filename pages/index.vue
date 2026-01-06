@@ -48,7 +48,7 @@
           <div class="flex gap-1">
             <button
               v-if="authStore.isAuthenticated && canvasStore.currentBoard"
-              @click="showShareDialog = true"
+              @click="openShareDialog"
               class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
               title="Share board"
             >
@@ -225,8 +225,8 @@
     <!-- Dialogs -->
     <ShareBoardDialog
       :isOpen="showShareDialog"
-      :boardId="canvasStore.currentBoard?.id || null"
-      @close="showShareDialog = false"
+      :boardId="sharingBoardId"
+      @close="closeShareDialog"
     />
 
     <VersionHistoryDialog
@@ -236,33 +236,69 @@
       @close="showHistoryDialog = false"
       @restore="handleRestoreVersion"
     />
+
+    <RenameBoardDialog
+      :isOpen="showRenameDialog"
+      :board="renamingBoard"
+      @close="showRenameDialog = false; renamingBoard = null"
+      @rename="handleRenameBoard"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useCanvasStore } from '~/stores/canvas'
 import { useAuthStore } from '~/stores/auth'
+import { useRoute } from 'vue-router'
 
 const canvasStore = useCanvasStore()
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const showShareDialog = ref(false)
 const showHistoryDialog = ref(false)
+const showRenameDialog = ref(false)
 const renamingBoard = ref<any>(null)
+const sharingBoardId = ref<string | null>(null)
+
+// Handle shared board link from URL
+onMounted(() => {
+  const boardId = route.query.board as string
+  if (boardId) {
+    // Find the board in the loaded boards
+    const board = canvasStore.boards.find(b => b.id === boardId)
+    if (board) {
+      canvasStore.currentBoard = board
+    }
+  }
+})
 
 const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
 }
 
-const startRename = (board: any) => {
-  const newName = prompt('Enter new board name:', board.name)
-  if (newName && newName.trim() && newName !== board.name) {
-    board.name = newName.trim()
-    canvasStore.saveToLocalStorage()
+const openShareDialog = () => {
+  if (canvasStore.currentBoard) {
+    sharingBoardId.value = canvasStore.currentBoard.id
+    showShareDialog.value = true
   }
+}
+
+const closeShareDialog = () => {
+  showShareDialog.value = false
+  sharingBoardId.value = null
+}
+
+const startRename = (board: any) => {
+  renamingBoard.value = board
+  showRenameDialog.value = true
+}
+
+const handleRenameBoard = (boardId: string, newName: string) => {
+  canvasStore.renameBoard(boardId, newName)
 }
 
 const handleRestoreVersion = (version: any) => {

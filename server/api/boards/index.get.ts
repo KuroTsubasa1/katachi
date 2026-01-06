@@ -1,6 +1,6 @@
 import { db } from '../../db'
-import { boards, cards, connections, shapes } from '../../db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { boards, cards, connections, shapes, boardShares } from '../../db/schema'
+import { eq, and, isNull, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const user = event.context.user
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get user's own boards (without relations for now)
+  // Get user's own boards
   const userBoards = await db.query.boards.findMany({
     where: and(
       eq(boards.userId, user.id),
@@ -20,9 +20,28 @@ export default defineEventHandler(async (event) => {
     )
   })
 
+  // Get boards shared with the user
+  const sharedBoardRecords = await db.query.boardShares.findMany({
+    where: eq(boardShares.userId, user.id)
+  })
+
+  // Get the actual board data for shared boards
+  const sharedBoardIds = sharedBoardRecords.map(share => share.boardId)
+  const sharedBoards = sharedBoardIds.length > 0
+    ? await db.query.boards.findMany({
+        where: and(
+          inArray(boards.id, sharedBoardIds),
+          isNull(boards.deletedAt)
+        )
+      })
+    : []
+
+  // Combine owned and shared boards
+  const allBoards = [...userBoards, ...sharedBoards]
+
   // Manually fetch related data for each board
   const boardsWithRelations = await Promise.all(
-    userBoards.map(async (board) => {
+    allBoards.map(async (board) => {
       const boardCards = await db.query.cards.findMany({
         where: and(
           eq(cards.boardId, board.id),

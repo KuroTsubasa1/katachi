@@ -81,3 +81,18 @@ export async function verifyLoginCode(email: string, code: string) {
     name: user.name
   }
 }
+
+export async function getUserById(id: string) {
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1)
+
+  if (result.length === 0) {
+    return null
+  }
+
+  const user = result[0]
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name
+  }
+}
