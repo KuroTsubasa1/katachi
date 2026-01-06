@@ -142,6 +142,13 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
   }
 
   if (op.operation === 'create') {
+    console.log('[Sync] Creating card:', {
+      id: op.id,
+      type: op.data.type,
+      position: op.data.position,
+      columnCards: op.data.columnCards
+    })
+
     await db.insert(cards).values({
       id: op.id,
       boardId: op.data.boardId || op.data.board_id,
@@ -211,6 +218,22 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
       await saveCardHistory(op.id, op.data.boardId || op.data.board_id, userId, 1, op.data, 'create')
       results.synced.push(op.id)
       return
+    }
+
+    if (op.data.type === 'column') {
+      console.log('[Sync] Updating column card:', {
+        id: op.id,
+        columnCards: op.data.columnCards,
+        currentInDb: existing.columnCards
+      })
+    }
+
+    if (op.data.position?.x < -1000) {
+      console.log('[Sync] Updating card to hidden position:', {
+        id: op.id,
+        type: op.data.type,
+        position: op.data.position
+      })
     }
 
     await db.update(cards)

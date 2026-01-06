@@ -224,20 +224,34 @@ export const useCanvasStore = defineStore('canvas', {
       if (!column.columnCards) column.columnCards = []
       if (!column.columnCards.includes(cardId)) {
         column.columnCards.push(cardId)
-        column.updatedAt = new Date().toISOString()
-        this.currentBoard.updatedAt = new Date().toISOString()
-
-        // Sync the column update
-        if (typeof window !== 'undefined') {
-          const { queueSync } = useSync()
-          queueSync('card', 'update', { ...column, boardId: this.currentBoard.id })
-        }
       }
 
-      // Update card to be hidden from main canvas
-      this.updateCard(cardId, {
-        position: { x: -10000, y: -10000 }
-      })
+      // Update column timestamp
+      const now = new Date().toISOString()
+      column.updatedAt = now
+      this.currentBoard.updatedAt = now
+
+      // Update both the column and the card
+      const cardIndex = this.currentBoard.cards.findIndex(c => c.id === cardId)
+      if (cardIndex !== -1) {
+        this.currentBoard.cards[cardIndex].position = { x: -10000, y: -10000 }
+        this.currentBoard.cards[cardIndex].updatedAt = now
+      }
+
+      // Sync both updates in one batch
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        console.log('[Column] Moving card to column, syncing:', {
+          columnId,
+          cardId,
+          columnCards: column.columnCards,
+          cardPosition: this.currentBoard.cards[cardIndex]?.position
+        })
+        queueSync('card', 'update', { ...column, boardId: this.currentBoard.id })
+        if (cardIndex !== -1) {
+          queueSync('card', 'update', { ...this.currentBoard.cards[cardIndex], boardId: this.currentBoard.id })
+        }
+      }
     },
 
     removeCardFromColumn(cardId: string, columnId: string) {
