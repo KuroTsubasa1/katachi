@@ -17,16 +17,6 @@ export const useSync = () => {
       return // Skip sync if not authenticated
     }
 
-    console.log(`[QueueSync] ${operation} ${entityType}:`, {
-      id: data.id,
-      type: data.type,
-      content: data.content?.substring(0, 50),
-      url: data.url,
-      imageUrl: data.imageUrl,
-      hasPosition: !!data.position,
-      hasSize: !!data.size
-    })
-
     syncQueue.value.push({
       type: entityType,
       operation,
@@ -65,23 +55,17 @@ export const useSync = () => {
       const operations = [...syncQueue.value]
       syncQueue.value = []
 
-      console.log('[Sync] Processing operations:', operations)
-
       const response = await $fetch('/api/boards/sync', {
         method: 'POST',
         body: { operations }
       })
-
-      console.log('[Sync] Response:', response)
 
       if (response.errors && response.errors.length > 0) {
         console.error('[Sync] Errors:', response.errors)
       }
 
       if (response.conflicts && response.conflicts.length > 0) {
-        console.warn('[Sync] Conflicts detected:', response.conflicts)
-        // Handle conflicts - for now, accept server version
-        // TODO: Show conflict resolution UI
+        console.warn('[Sync] Conflicts:', response.conflicts)
       }
 
       syncStatus.value = 'synced'
@@ -157,14 +141,10 @@ export const useSync = () => {
           const localBoard = localBoardMap.get(serverBoard.id)
 
           if (!localBoard) {
-            // New board from server
-            console.log(`[StartSync] New board from server: ${serverBoard.name} with ${serverBoard.cards?.length || 0} cards`)
             return serverBoard
           }
 
-          // Always use server version for consistency
-          // Local changes are preserved via sync queue before startSync runs
-          console.log(`[StartSync] ${serverBoard.name}: Using server (Server: ${serverBoard.cards?.length || 0} cards, Local: ${localBoard.cards?.length || 0} cards)`)
+          // Always use server version for real-time collaboration
           return serverBoard
         })
 
@@ -175,12 +155,10 @@ export const useSync = () => {
           }
         })
 
-        // Preserve current board selection if it still exists
+        // Preserve current board selection
         if (currentBoardId) {
           const existingBoard = mergedBoards.find(b => b.id === currentBoardId)
           if (existingBoard) {
-            console.log(`[StartSync] Setting current board: ${existingBoard.name} with ${existingBoard.cards?.length || 0} cards`)
-            // Use $patch for proper Pinia reactivity
             canvasStore.$patch({
               boards: mergedBoards,
               currentBoard: JSON.parse(JSON.stringify(existingBoard))
@@ -221,40 +199,14 @@ export const useSync = () => {
         const response = await $fetch('/api/boards')
         if (response.boards) {
           const currentBoardId = canvasStore.currentBoard?.id
-
-          console.log('[Polling] Received boards from server:', response.boards.length)
-          response.boards.forEach(b => {
-            console.log(`  - ${b.name}: ${b.cards?.length || 0} cards`)
-            if (b.id === currentBoardId) {
-              console.log('    Current board cards detail:')
-              b.cards?.forEach((c, i) => {
-                console.log(`      Card ${i}: type=${c.type}, content="${c.content?.substring(0, 30)}", imageUrl="${c.imageUrl?.substring(0, 30)}"`)
-              })
-            }
-          })
-
           const serverBoards = response.boards
           const localBoards = canvasStore.boards
 
           // Create a map of local boards
           const localBoardMap = new Map(localBoards.map(b => [b.id, b]))
 
-          // Merge: always prefer server during polling for real-time updates
+          // Merge: always use server for real-time collaboration
           const mergedBoards = serverBoards.map(serverBoard => {
-            const localBoard = localBoardMap.get(serverBoard.id)
-
-            if (!localBoard) {
-              console.log(`[Polling] New board from server: ${serverBoard.name} with ${serverBoard.cards?.length || 0} cards`)
-              return serverBoard
-            }
-
-            console.log(`[Polling] Comparing ${serverBoard.name}:`)
-            console.log(`  - Server: ${serverBoard.cards?.length || 0} cards, updated: ${serverBoard.updatedAt}`)
-            console.log(`  - Local: ${localBoard.cards?.length || 0} cards, updated: ${localBoard.updatedAt}`)
-            console.log(`  → Using server version (polling always uses server)`)
-
-            // During polling, always use server version for real-time updates
-            // Local changes are preserved via sync queue
             return serverBoard
           })
 
@@ -265,8 +217,6 @@ export const useSync = () => {
             }
           })
 
-          console.log(`[Polling] Merged boards count: ${mergedBoards.length}`)
-
           // Update boards array using $patch for proper reactivity
           canvasStore.$patch({
             boards: mergedBoards
@@ -276,32 +226,11 @@ export const useSync = () => {
           if (currentBoardId) {
             const updatedCurrentBoard = mergedBoards.find(b => b.id === currentBoardId)
             if (updatedCurrentBoard) {
-              console.log(`[Polling] Updating current board: ${updatedCurrentBoard.name} with ${updatedCurrentBoard.cards?.length || 0} cards`)
-              console.log('[Polling] Card contents before assignment:')
-              updatedCurrentBoard.cards?.forEach((c, i) => {
-                console.log(`  Card ${i}: "${c.content?.substring(0, 30)}"`)
-              })
-
-              // Deep copy to trigger Vue reactivity for nested objects
-              const deepCopy = JSON.parse(JSON.stringify(updatedCurrentBoard))
-
-              console.log('[Polling] Card contents after deep copy:')
-              deepCopy.cards?.forEach((c, i) => {
-                console.log(`  Card ${i}: "${c.content?.substring(0, 30)}"`)
-              })
-
-              // Use Pinia's $patch for proper reactivity
+              // Deep copy and force re-render
               canvasStore.$patch({
-                currentBoard: deepCopy,
-                boardVersion: canvasStore.boardVersion + 1  // Force component re-render
+                currentBoard: JSON.parse(JSON.stringify(updatedCurrentBoard)),
+                boardVersion: canvasStore.boardVersion + 1
               })
-
-              console.log('[Polling] Current board set (version: ' + canvasStore.boardVersion + '). Verifying canvasStore.currentBoard:')
-              canvasStore.currentBoard?.cards?.forEach((c, i) => {
-                console.log(`  Card ${i}: "${c.content?.substring(0, 30)}"`)
-              })
-            } else {
-              console.log(`[Polling] Current board ${currentBoardId} not found in merged boards`)
             }
           }
         }

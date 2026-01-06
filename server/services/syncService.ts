@@ -179,7 +179,6 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
 
     if (!existing) {
       // Card doesn't exist - create it instead of updating
-      console.log(`[Sync] Card ${op.id} not found, creating instead of updating`)
       await db.insert(cards).values({
         id: op.id,
         boardId: op.data.boardId || op.data.board_id,
@@ -211,13 +210,6 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
       results.synced.push(op.id)
       return
     }
-
-    console.log(`[Sync] Updating card ${op.id}:`, {
-      type: op.data.type,
-      content: op.data.content?.substring(0, 50),
-      url: op.data.url,
-      imageUrl: op.data.imageUrl
-    })
 
     await db.update(cards)
       .set({
