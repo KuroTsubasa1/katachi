@@ -308,8 +308,7 @@ The application uses a hybrid approach for maximum reliability:
 - [ ] Advanced version history UI
 - [ ] Search across boards
 - [ ] Undo/Redo functionality
-- [ ] Voice/video chat integration
-- [ ] Advanced drawing tools (shapes, text on canvas)
+- [ ] Advanced drawing tools (better shapes, text on canvas)
 - [ ] Card labels and tags
 - [ ] Custom board backgrounds
 
