@@ -52,7 +52,7 @@
         v-else-if="card.type === 'column'"
         :columnId="card.id"
         :title="card.content"
-        :columnItems="parseColumnItems(card.columnCards)"
+        :columnItems="[]"
         :columnCards="card.columnCards || []"
         :isSelected="isSelected"
         @update:title="updateColumnTitle"
