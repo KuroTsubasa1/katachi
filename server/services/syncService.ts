@@ -212,6 +212,13 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
       return
     }
 
+    console.log(`[Sync] Updating card ${op.id}:`, {
+      type: op.data.type,
+      content: op.data.content?.substring(0, 50),
+      url: op.data.url,
+      imageUrl: op.data.imageUrl
+    })
+
     await db.update(cards)
       .set({
         positionX: Math.round(op.data.position?.x),
@@ -220,13 +227,18 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
         height: Math.round(op.data.size?.height),
         content: op.data.content,
         htmlContent: op.data.htmlContent,
+        imageUrl: op.data.imageUrl,
+        url: op.data.url,
+        audioUrl: op.data.audioUrl,
+        videoUrl: op.data.videoUrl,
+        mapLocation: op.data.mapLocation,
+        markdown: op.data.markdown,
         color: op.data.color,
         zIndex: op.data.zIndex,
         drawingData: op.data.drawingData,
         columnCards: op.data.columnCards,
         tableData: op.data.tableData,
         todoData: op.data.todoData,
-        markdown: op.data.markdown,
         updatedAt: new Date(),
         version: existing.version + 1
       })

@@ -75,6 +75,9 @@ export default defineEventHandler(async (event) => {
   console.log(`[Boards API] User ${user.email} - Returning ${boardsWithRelations.length} boards`)
   boardsWithRelations.forEach(b => {
     console.log(`  - Board: ${b.name} (${b.id}) - ${b.cards.length} cards, ${b.connections.length} connections, ${b.shapes.length} shapes`)
+    b.cards.forEach(c => {
+      console.log(`    Card ${c.type}: content="${c.content?.substring(0, 30)}", url="${c.url}", imageUrl="${c.imageUrl?.substring(0, 50)}"`)
+    })
   })
 
   // Transform to client format
