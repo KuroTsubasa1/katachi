@@ -335,10 +335,20 @@ const handleResize = (e: MouseEvent) => {
   const dx = (e.clientX - resizeStartPos.x) / scale
   const dy = (e.clientY - resizeStartPos.y) / scale
 
+  let newWidth = Math.max(150, sizeStart.width + dx)
+  let newHeight = Math.max(100, sizeStart.height + dy)
+
+  // Snap to grid if enabled
+  if (canvasStore.snapToGrid) {
+    const gridSize = canvasStore.gridSize
+    newWidth = Math.round(newWidth / gridSize) * gridSize
+    newHeight = Math.round(newHeight / gridSize) * gridSize
+  }
+
   canvasStore.updateCard(props.card.id, {
     size: {
-      width: Math.max(150, sizeStart.width + dx),
-      height: Math.max(100, sizeStart.height + dy)
+      width: newWidth,
+      height: newHeight
     }
   })
 }
