@@ -2,6 +2,7 @@ import { db } from '../db'
 import { boards, cards, connections, shapes, cardHistory, boardHistory, boardShares } from '../db/schema'
 import { eq, and, isNull, or } from 'drizzle-orm'
 import { getUserBoardPermission } from './sharingService'
+import { RealtimeService } from './realtimeService'
 
 interface SyncOperation {
   type: 'board' | 'card' | 'connection' | 'shape'
@@ -179,6 +180,14 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
 
     await saveCardHistory(op.id, op.data.boardId, userId, 1, op.data, 'create')
 
+    // Broadcast to WebSocket clients
+    await RealtimeService.publishBoardChange(op.data.boardId, {
+      type: 'card_created',
+      cardId: op.id,
+      userId,
+      data: op.data
+    })
+
     results.synced.push(op.id)
   } else if (op.operation === 'update') {
     const existing = await db.query.cards.findFirst({
@@ -269,6 +278,16 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
 
     await saveCardHistory(op.id, existing.boardId, userId, existing.version + 1, op.data, 'update')
 
+    // Broadcast to WebSocket clients
+    console.log('[Sync] Publishing card_updated event for card:', op.id, 'on board:', existing.boardId)
+    await RealtimeService.publishBoardChange(existing.boardId, {
+      type: 'card_updated',
+      cardId: op.id,
+      userId,
+      data: op.data
+    })
+    console.log('[Sync] Event published to Redis channel: board:' + existing.boardId)
+
     results.synced.push(op.id)
   } else if (op.operation === 'delete') {
     const cardToDelete = await db.query.cards.findFirst({
@@ -290,6 +309,13 @@ async function syncCard(userId: string, op: SyncOperation, results: any) {
     await db.update(boards)
       .set({ updatedAt: new Date() })
       .where(eq(boards.id, cardToDelete.boardId))
+
+    // Broadcast to WebSocket clients
+    await RealtimeService.publishBoardChange(cardToDelete.boardId, {
+      type: 'card_deleted',
+      cardId: op.id,
+      userId
+    })
 
     results.synced.push(op.id)
   }

@@ -5,6 +5,7 @@
       <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <Logo :size="28" :showText="true" />
         <div class="flex items-center gap-1">
+          <ConnectionStatus v-if="authStore.isAuthenticated" />
           <SyncStatus v-if="authStore.isAuthenticated" />
           <a
             href="https://github.com/KuroTsubasa1/katachi"

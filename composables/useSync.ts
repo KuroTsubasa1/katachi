@@ -1,12 +1,14 @@
 import { ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useCanvasStore } from '~/stores/canvas'
+import { useWebSocket } from '~/composables/useWebSocket'
 
 const syncQueue = ref<any[]>([])
 const isSyncing = ref(false)
 const syncStatus = ref<'idle' | 'syncing' | 'synced' | 'error' | 'offline'>('idle')
 let syncTimeout: NodeJS.Timeout | null = null
 let pollInterval: NodeJS.Timeout | null = null
+let wsInitialized = false
 
 export const useSync = () => {
   const authStore = useAuthStore()
@@ -183,6 +185,96 @@ export const useSync = () => {
     }
   }
 
+  const initWebSocket = () => {
+    if (wsInitialized) return
+    wsInitialized = true
+
+    console.log('[WebSocket] Initializing WebSocket with event handlers')
+
+    const ws = useWebSocket()
+
+    // Setup event handlers
+    ws.on('card_created', handleCardCreated)
+    ws.on('card_updated', handleCardUpdated)
+    ws.on('card_deleted', handleCardDeleted)
+    ws.on('board_joined', handleBoardJoined)
+
+    console.log('[WebSocket] Event handlers registered')
+
+    // Connect to WebSocket
+    ws.connect()
+
+    return ws
+  }
+
+  const handleCardCreated = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard || canvasStore.currentBoard.id !== event.data.boardId) {
+      return
+    }
+
+    console.log('[WebSocket] Card created:', event.cardId)
+
+    // Add card to current board
+    const newCard = {
+      ...event.data,
+      id: event.cardId
+    }
+
+    if (!canvasStore.currentBoard.cards.find(c => c.id === event.cardId)) {
+      canvasStore.currentBoard.cards.push(newCard)
+      canvasStore.currentBoard.updatedAt = new Date().toISOString()
+      canvasStore.boardVersion++
+    }
+  }
+
+  const handleCardUpdated = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard) {
+      console.log('[WebSocket] Card updated but no current board')
+      return
+    }
+
+    console.log('[WebSocket] Card updated event received:', {
+      cardId: event.cardId,
+      type: event.type,
+      fromUser: event.userId,
+      currentBoard: canvasStore.currentBoard.id,
+      eventData: event.data
+    })
+
+    const cardIndex = canvasStore.currentBoard.cards.findIndex(c => c.id === event.cardId)
+    if (cardIndex !== -1) {
+      console.log('[WebSocket] Applying update to card at index:', cardIndex)
+      // Merge updates
+      canvasStore.currentBoard.cards[cardIndex] = {
+        ...canvasStore.currentBoard.cards[cardIndex],
+        ...event.data,
+        id: event.cardId
+      }
+      canvasStore.currentBoard.updatedAt = new Date().toISOString()
+      canvasStore.boardVersion++
+      console.log('[WebSocket] Card updated successfully, new boardVersion:', canvasStore.boardVersion)
+    } else {
+      console.log('[WebSocket] Card not found in current board:', event.cardId)
+    }
+  }
+
+  const handleCardDeleted = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard) return
+
+    console.log('[WebSocket] Card deleted:', event.cardId)
+
+    canvasStore.currentBoard.cards = canvasStore.currentBoard.cards.filter(c => c.id !== event.cardId)
+    canvasStore.currentBoard.updatedAt = new Date().toISOString()
+    canvasStore.boardVersion++
+  }
+
+  const handleBoardJoined = (event: any) => {
+    console.log('[WebSocket] Board joined:', event.boardId)
+  }
+
   const startPolling = () => {
     // Poll for updates every 5 seconds
     if (pollInterval) {
@@ -192,6 +284,13 @@ export const useSync = () => {
     pollInterval = setInterval(async () => {
       if (!authStore.isAuthenticated) {
         stopPolling()
+        return
+      }
+
+      // Skip polling if WebSocket is connected
+      const ws = useWebSocket()
+      if (ws.isConnected.value) {
+        console.log('[Polling] Skipping - WebSocket connected')
         return
       }
 
@@ -266,12 +365,41 @@ export const useSync = () => {
     }
   }
 
+  const joinBoard = (boardId: string) => {
+    const ws = useWebSocket()
+    const authStore = useAuthStore()
+
+    console.log('[WebSocket] joinBoard called - connected:', ws.isConnected.value, 'boardId:', boardId, 'userId:', authStore.user?.id)
+
+    if (ws.isConnected.value) {
+      console.log('[WebSocket] Sending join_board message')
+      ws.send({
+        type: 'join_board',
+        boardId,
+        userId: authStore.user?.id
+      })
+    } else {
+      console.log('[WebSocket] Cannot join - not connected. Status:', ws.status.value)
+    }
+  }
+
+  const leaveBoard = (boardId: string) => {
+    const ws = useWebSocket()
+    if (ws.isConnected.value) {
+      console.log('[WebSocket] Leaving board:', boardId)
+      ws.send({ type: 'leave_board', boardId })
+    }
+  }
+
   return {
     queueSync,
     syncStatus,
     startSync,
     isSyncing,
     startPolling,
-    stopPolling
+    stopPolling,
+    initWebSocket,
+    joinBoard,
+    leaveBoard
   }
 }

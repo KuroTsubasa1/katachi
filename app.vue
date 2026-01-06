@@ -13,7 +13,7 @@ import { watch } from 'vue'
 const canvasStore = useCanvasStore()
 const authStore = useAuthStore()
 const router = useRouter()
-const { startSync, startPolling, stopPolling } = useSync()
+const { startSync, startPolling, stopPolling, initWebSocket, joinBoard, leaveBoard } = useSync()
 
 onMounted(async () => {
   // Check authentication
@@ -28,10 +28,23 @@ onMounted(async () => {
   // Load from localStorage (offline fallback)
   canvasStore.loadFromLocalStorage()
 
-  // If authenticated, sync with server and start polling
+  // If authenticated, sync with server and start real-time updates
   if (authStore.isAuthenticated) {
     await startSync()
-    startPolling() // Start polling for updates every 5 seconds
+
+    // Initialize WebSocket for real-time updates
+    const ws = initWebSocket()
+
+    // Join board when WebSocket connects
+    ws.on('connected', () => {
+      console.log('[App] WebSocket connected, joining current board')
+      if (canvasStore.currentBoard) {
+        joinBoard(canvasStore.currentBoard.id)
+      }
+    })
+
+    // Start polling as fallback (will skip if WebSocket connected)
+    startPolling()
   }
 
   // Create default board if none exist
@@ -54,10 +67,28 @@ onMounted(async () => {
     },
     { deep: true }
   )
+
+  // Watch for board changes to join/leave via WebSocket
+  watch(
+    () => canvasStore.currentBoard?.id,
+    (newBoardId, oldBoardId) => {
+      if (oldBoardId && oldBoardId !== newBoardId) {
+        leaveBoard(oldBoardId)
+      }
+      if (newBoardId && newBoardId !== oldBoardId) {
+        joinBoard(newBoardId)
+      }
+    }
+  )
 })
 
 onUnmounted(() => {
   // Clean up polling when component unmounts
   stopPolling()
+
+  // Leave board via WebSocket
+  if (canvasStore.currentBoard) {
+    leaveBoard(canvasStore.currentBoard.id)
+  }
 })
 </script>
