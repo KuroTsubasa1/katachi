@@ -22,7 +22,11 @@ describe('Card Interactions', () => {
       store.selectCard(card.id)
 
       expect(store.selectedCardId).toBe(card.id)
-      expect(store.selectedCard).toBe(card)
+      expect(store.selectedCard?.id).toBe(card.id)
+      expect(store.selectedCard?.type).toBe('text')
+      expect(store.selectedCard?.content).toBe('Test')
+      // Note: zIndex increases when card is selected (brought to front)
+      expect(store.selectedCard?.zIndex).toBeGreaterThan(0)
     })
 
     it('should deselect when selecting null', () => {

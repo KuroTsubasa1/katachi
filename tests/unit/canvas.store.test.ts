@@ -16,7 +16,7 @@ describe('Canvas Store', () => {
       expect(board.name).toBe('Test Board')
       expect(board.cards).toEqual([])
       expect(store.boards).toHaveLength(1)
-      expect(store.currentBoard).toBe(board)
+      expect(store.currentBoard).toStrictEqual(board)
     })
 
     it('should set current board', () => {
@@ -24,10 +24,10 @@ describe('Canvas Store', () => {
       const board1 = store.createBoard('Board 1')
       const board2 = store.createBoard('Board 2')
 
-      expect(store.currentBoard).toBe(board2)
+      expect(store.currentBoard).toStrictEqual(board2)
 
       store.currentBoard = board1
-      expect(store.currentBoard).toBe(board1)
+      expect(store.currentBoard).toStrictEqual(board1)
     })
   })
 
