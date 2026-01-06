@@ -11,7 +11,12 @@
         {{ error }}
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
+      <div v-if="success" class="mb-4 p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm">
+        {{ success }}
+      </div>
+
+      <!-- Step 1: Enter Email -->
+      <form v-if="!codeSent" @submit.prevent="requestCode" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
           <input
@@ -20,62 +25,146 @@
             required
             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
             placeholder="you@example.com"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
-          <input
-            v-model="password"
-            type="password"
-            required
-            minlength="8"
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-            placeholder="••••••••"
+            :disabled="loading"
           />
         </div>
 
         <button
           type="submit"
-          :disabled="authStore.isLoading"
+          :disabled="loading"
           class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
         >
-          {{ authStore.isLoading ? 'Signing in...' : 'Sign In' }}
+          {{ loading ? 'Sending code...' : 'Send Login Code' }}
         </button>
       </form>
 
-      <div class="mt-6 text-center">
-        <p class="text-gray-600 dark:text-gray-400 text-sm">
-          Don't have an account?
-          <NuxtLink to="/register" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-            Sign up
-          </NuxtLink>
-        </p>
-      </div>
+      <!-- Step 2: Enter Code -->
+      <form v-else @submit.prevent="verifyCode" class="space-y-4">
+        <div class="text-center mb-4">
+          <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">
+            Code sent to <strong>{{ email }}</strong>
+          </p>
+          <p class="text-red-600 dark:text-red-400 text-sm font-semibold">
+            ⏱️ Expires in {{ timeRemaining }}s
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 text-center">
+            Enter 6-Digit Code
+          </label>
+          <input
+            v-model="code"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]{6}"
+            maxlength="6"
+            required
+            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 text-center text-2xl font-mono tracking-widest"
+            placeholder="000000"
+            :disabled="loading"
+            autofocus
+          />
+        </div>
+
+        <button
+          type="submit"
+          :disabled="loading || code.length !== 6"
+          class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+        >
+          {{ loading ? 'Verifying...' : 'Verify Code' }}
+        </button>
+
+        <button
+          type="button"
+          @click="resetForm"
+          class="w-full py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm"
+        >
+          ← Use different email
+        </button>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useAuthStore } from '~/stores/auth'
+import { ref, onUnmounted } from 'vue'
 
-const authStore = useAuthStore()
 const router = useRouter()
 
 const email = ref('')
-const password = ref('')
+const code = ref('')
+const codeSent = ref(false)
+const loading = ref(false)
 const error = ref('')
+const success = ref('')
+const timeRemaining = ref(120)
 
-const handleLogin = async () => {
+let countdownInterval: NodeJS.Timeout | null = null
+
+const requestCode = async () => {
   error.value = ''
+  success.value = ''
+  loading.value = true
 
-  const result = await authStore.login(email.value, password.value)
+  try {
+    const response = await $fetch('/api/auth/request-code', {
+      method: 'POST',
+      body: { email: email.value }
+    })
 
-  if (result.success) {
-    router.push('/')
-  } else {
-    error.value = result.message || 'Login failed'
+    codeSent.value = true
+    success.value = 'Code sent! Check your email.'
+
+    // Start countdown
+    timeRemaining.value = 120
+    countdownInterval = setInterval(() => {
+      timeRemaining.value--
+      if (timeRemaining.value <= 0) {
+        if (countdownInterval) clearInterval(countdownInterval)
+        error.value = 'Code expired. Please request a new one.'
+        resetForm()
+      }
+    }, 1000)
+  } catch (err: any) {
+    error.value = err.data?.message || 'Failed to send code'
+  } finally {
+    loading.value = false
   }
 }
+
+const verifyCode = async () => {
+  error.value = ''
+  loading.value = true
+
+  try {
+    const response = await $fetch('/api/auth/verify-code', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        code: code.value
+      }
+    })
+
+    if (countdownInterval) clearInterval(countdownInterval)
+    router.push('/')
+  } catch (err: any) {
+    error.value = err.data?.message || 'Invalid code'
+    code.value = ''
+  } finally {
+    loading.value = false
+  }
+}
+
+const resetForm = () => {
+  codeSent.value = false
+  code.value = ''
+  error.value = ''
+  success.value = ''
+  if (countdownInterval) clearInterval(countdownInterval)
+}
+
+onUnmounted(() => {
+  if (countdownInterval) clearInterval(countdownInterval)
+})
 </script>

@@ -59,6 +59,13 @@ export const useCanvasStore = defineStore('canvas', {
       }
       this.boards.push(board)
       this.currentBoard = board
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('board', 'create', board)
+      }
+
       return board
     },
 
@@ -77,6 +84,13 @@ export const useCanvasStore = defineStore('canvas', {
 
       this.currentBoard.cards.push(newCard)
       this.currentBoard.updatedAt = now
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
       return newCard
     },
 
@@ -93,6 +107,12 @@ export const useCanvasStore = defineStore('canvas', {
         updatedAt: now
       }
       this.currentBoard.updatedAt = now
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'update', { ...this.currentBoard.cards[cardIndex], boardId: this.currentBoard.id })
+      }
     },
 
     deleteCard(cardId: string) {

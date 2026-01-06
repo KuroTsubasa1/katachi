@@ -11,6 +11,10 @@
         {{ error }}
       </div>
 
+      <p class="text-center text-gray-600 dark:text-gray-400 mb-6">
+        Enter your email to receive a login code. No password needed!
+      </p>
+
       <form @submit.prevent="handleRegister" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name (optional)</label>
@@ -33,24 +37,12 @@
           />
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
-          <input
-            v-model="password"
-            type="password"
-            required
-            minlength="8"
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-            placeholder="At least 8 characters"
-          />
-        </div>
-
         <button
           type="submit"
-          :disabled="authStore.isLoading"
+          :disabled="loading"
           class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
         >
-          {{ authStore.isLoading ? 'Creating account...' : 'Create Account' }}
+          {{ loading ? 'Sending code...' : 'Get Started' }}
         </button>
       </form>
 
@@ -68,25 +60,33 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useAuthStore } from '~/stores/auth'
 
-const authStore = useAuthStore()
 const router = useRouter()
 
 const name = ref('')
 const email = ref('')
-const password = ref('')
+const loading = ref(false)
 const error = ref('')
 
 const handleRegister = async () => {
   error.value = ''
+  loading.value = true
 
-  const result = await authStore.register(email.value, password.value, name.value || undefined)
+  try {
+    await $fetch('/api/auth/request-code', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        name: name.value || undefined
+      }
+    })
 
-  if (result.success) {
-    router.push('/')
-  } else {
-    error.value = result.message || 'Registration failed'
+    // Redirect to login to enter code
+    router.push(`/login?email=${encodeURIComponent(email.value)}`)
+  } catch (err: any) {
+    error.value = err.data?.message || 'Failed to send code'
+  } finally {
+    loading.value = false
   }
 }
 </script>

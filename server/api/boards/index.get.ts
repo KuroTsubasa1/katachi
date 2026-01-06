@@ -12,27 +12,49 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get user's own boards
+  // Get user's own boards (without relations for now)
   const userBoards = await db.query.boards.findMany({
     where: and(
       eq(boards.userId, user.id),
       isNull(boards.deletedAt)
-    ),
-    with: {
-      cards: {
-        where: isNull(cards.deletedAt)
-      },
-      connections: {
-        where: isNull(connections.deletedAt)
-      },
-      shapes: {
-        where: isNull(shapes.deletedAt)
-      }
-    }
+    )
   })
 
+  // Manually fetch related data for each board
+  const boardsWithRelations = await Promise.all(
+    userBoards.map(async (board) => {
+      const boardCards = await db.query.cards.findMany({
+        where: and(
+          eq(cards.boardId, board.id),
+          isNull(cards.deletedAt)
+        )
+      })
+
+      const boardConnections = await db.query.connections.findMany({
+        where: and(
+          eq(connections.boardId, board.id),
+          isNull(connections.deletedAt)
+        )
+      })
+
+      const boardShapes = await db.query.shapes.findMany({
+        where: and(
+          eq(shapes.boardId, board.id),
+          isNull(shapes.deletedAt)
+        )
+      })
+
+      return {
+        ...board,
+        cards: boardCards,
+        connections: boardConnections,
+        shapes: boardShapes
+      }
+    })
+  )
+
   // Transform to client format
-  const transformedBoards = userBoards.map(board => ({
+  const transformedBoards = boardsWithRelations.map(board => ({
     id: board.id,
     name: board.name,
     backgroundColor: board.backgroundColor || '#f5f5f5',

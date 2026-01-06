@@ -3,10 +3,13 @@ import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb, integer } from
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
   name: varchar('name', { length: 255 }),
+  emailVerified: boolean('email_verified').default(true),
+  loginCode: varchar('login_code', { length: 10 }),
+  loginCodeExpiry: timestamp('login_code_expiry'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastLoginAt: timestamp('last_login_at')
 })
 
 export const boards = pgTable('boards', {

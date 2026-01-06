@@ -95,13 +95,23 @@
         <div
           v-for="board in canvasStore.boards"
           :key="board.id"
-          class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer mb-1 text-gray-700 dark:text-gray-300"
+          class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer mb-1 text-gray-700 dark:text-gray-300 group flex items-center justify-between"
           :class="{
             'bg-blue-100 dark:bg-blue-900': canvasStore.currentBoard?.id === board.id
           }"
           @click="canvasStore.currentBoard = board"
         >
-          {{ board.name }}
+          <span>{{ board.name }}</span>
+          <button
+            v-if="canvasStore.currentBoard?.id === board.id"
+            @click.stop="startRename(board)"
+            class="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+            title="Rename board"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -240,10 +250,19 @@ const router = useRouter()
 
 const showShareDialog = ref(false)
 const showHistoryDialog = ref(false)
+const renamingBoard = ref<any>(null)
 
 const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
+}
+
+const startRename = (board: any) => {
+  const newName = prompt('Enter new board name:', board.name)
+  if (newName && newName.trim() && newName !== board.name) {
+    board.name = newName.trim()
+    canvasStore.saveToLocalStorage()
+  }
 }
 
 const handleRestoreVersion = (version: any) => {

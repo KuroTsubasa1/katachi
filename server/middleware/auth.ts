@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
   const path = event.path || ''
   if (
     path.startsWith('/api/auth') ||
+    path.startsWith('/api/test-email') ||
     path.startsWith('/_nuxt') ||
     path.startsWith('/api/link-preview') ||
     path === '/' ||
