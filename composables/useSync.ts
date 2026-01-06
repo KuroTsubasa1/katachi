@@ -189,8 +189,6 @@ export const useSync = () => {
     if (wsInitialized) return
     wsInitialized = true
 
-    console.log('[WebSocket] Initializing WebSocket with event handlers')
-
     const ws = useWebSocket()
 
     // Setup event handlers
@@ -198,8 +196,6 @@ export const useSync = () => {
     ws.on('card_updated', handleCardUpdated)
     ws.on('card_deleted', handleCardDeleted)
     ws.on('board_joined', handleBoardJoined)
-
-    console.log('[WebSocket] Event handlers registered')
 
     // Connect to WebSocket
     ws.connect()
@@ -212,8 +208,6 @@ export const useSync = () => {
     if (!canvasStore.currentBoard || canvasStore.currentBoard.id !== event.data.boardId) {
       return
     }
-
-    console.log('[WebSocket] Card created:', event.cardId)
 
     // Add card to current board
     const newCard = {
@@ -231,21 +225,11 @@ export const useSync = () => {
   const handleCardUpdated = (event: any) => {
     const canvasStore = useCanvasStore()
     if (!canvasStore.currentBoard) {
-      console.log('[WebSocket] Card updated but no current board')
       return
     }
 
-    console.log('[WebSocket] Card updated event received:', {
-      cardId: event.cardId,
-      type: event.type,
-      fromUser: event.userId,
-      currentBoard: canvasStore.currentBoard.id,
-      eventData: event.data
-    })
-
     const cardIndex = canvasStore.currentBoard.cards.findIndex(c => c.id === event.cardId)
     if (cardIndex !== -1) {
-      console.log('[WebSocket] Applying update to card at index:', cardIndex)
       // Merge updates
       canvasStore.currentBoard.cards[cardIndex] = {
         ...canvasStore.currentBoard.cards[cardIndex],
@@ -254,9 +238,6 @@ export const useSync = () => {
       }
       canvasStore.currentBoard.updatedAt = new Date().toISOString()
       canvasStore.boardVersion++
-      console.log('[WebSocket] Card updated successfully, new boardVersion:', canvasStore.boardVersion)
-    } else {
-      console.log('[WebSocket] Card not found in current board:', event.cardId)
     }
   }
 
@@ -264,15 +245,13 @@ export const useSync = () => {
     const canvasStore = useCanvasStore()
     if (!canvasStore.currentBoard) return
 
-    console.log('[WebSocket] Card deleted:', event.cardId)
-
     canvasStore.currentBoard.cards = canvasStore.currentBoard.cards.filter(c => c.id !== event.cardId)
     canvasStore.currentBoard.updatedAt = new Date().toISOString()
     canvasStore.boardVersion++
   }
 
   const handleBoardJoined = (event: any) => {
-    console.log('[WebSocket] Board joined:', event.boardId)
+    // Board successfully joined via WebSocket
   }
 
   const startPolling = () => {

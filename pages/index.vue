@@ -31,6 +31,7 @@
         </div>
       </div>
 
+      <!-- Boards Section (50% height) -->
       <div class="flex-1 p-4 overflow-y-auto">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400">Boards</h2>
@@ -123,8 +124,10 @@
         </div>
       </div>
 
-      <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-1.5">
+      <!-- Content Tools Section (50% height) -->
+      <div class="flex-1 p-4 border-t border-gray-200 dark:border-gray-700 overflow-y-auto">
         <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">ADD CONTENT</div>
+        <div class="space-y-1.5">
 
         <button
           class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
@@ -227,10 +230,11 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
           <span>Todo List</span>
         </button>
+        </div>
       </div>
 
       <!-- Sidebar Footer with utility buttons -->
-      <div class="p-3 border-t border-gray-200 dark:border-gray-700 mt-auto">
+      <div class="p-3 border-t border-gray-200 dark:border-gray-700">
         <div class="flex gap-2 justify-center">
           <a
             href="https://github.com/KuroTsubasa1/katachi"
