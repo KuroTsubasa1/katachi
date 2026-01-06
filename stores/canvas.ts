@@ -211,16 +211,12 @@ export const useCanvasStore = defineStore('canvas', {
       const card = this.currentBoard.cards.find(c => c.id === cardId)
       const column = this.currentBoard.cards.find(c => c.id === columnId && c.type === 'column')
 
-      console.log('moveCardToColumn called:', { cardId, columnId, card, column })
-
       if (!card || !column || card.id === columnId) {
-        console.log('Cannot move card - invalid card or column')
         return
       }
 
       // Don't allow moving columns into columns
       if (card.type === 'column') {
-        console.log('Cannot move column into column')
         return
       }
 
@@ -228,15 +224,20 @@ export const useCanvasStore = defineStore('canvas', {
       if (!column.columnCards) column.columnCards = []
       if (!column.columnCards.includes(cardId)) {
         column.columnCards.push(cardId)
-        console.log('Card added to column.columnCards:', column.columnCards)
+        column.updatedAt = new Date().toISOString()
+        this.currentBoard.updatedAt = new Date().toISOString()
+
+        // Sync the column update
+        if (typeof window !== 'undefined') {
+          const { queueSync } = useSync()
+          queueSync('card', 'update', { ...column, boardId: this.currentBoard.id })
+        }
       }
 
-      // Update card to be hidden from main canvas (we'll render it in the column)
+      // Update card to be hidden from main canvas
       this.updateCard(cardId, {
-        position: { x: -10000, y: -10000 } // Move off-canvas
+        position: { x: -10000, y: -10000 }
       })
-
-      console.log('Card moved off-canvas')
     },
 
     removeCardFromColumn(cardId: string, columnId: string) {
@@ -246,6 +247,14 @@ export const useCanvasStore = defineStore('canvas', {
       if (!column || !column.columnCards) return
 
       column.columnCards = column.columnCards.filter(id => id !== cardId)
+      column.updatedAt = new Date().toISOString()
+      this.currentBoard.updatedAt = new Date().toISOString()
+
+      // Sync the column update
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'update', { ...column, boardId: this.currentBoard.id })
+      }
     },
 
     toggleSnapToGrid() {
