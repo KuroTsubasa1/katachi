@@ -481,9 +481,6 @@ const addCard = (type: string) => {
     case 'drawing':
       canvasStore.addDrawingCard(position)
       break
-    case 'sketch':
-      // Removed - use global draw mode or drawing card instead
-      break
     case 'link':
       canvasStore.addCard({
         type: 'link',
