@@ -37,6 +37,12 @@ onMounted(async () => {
   if (authStore.isAuthenticated) {
     await startSync()
 
+    // Load global drawing paths for current board
+    if (canvasStore.currentBoard) {
+      canvasStore.globalDrawingPaths = canvasStore.currentBoard.globalDrawingPaths || []
+      console.log('[App] Initial load:', canvasStore.globalDrawingPaths.length, 'global drawing paths')
+    }
+
     // Initialize WebSocket for real-time updates
     const ws = initWebSocket()
 
@@ -73,7 +79,7 @@ onMounted(async () => {
     { deep: true }
   )
 
-  // Watch for board changes to join/leave via WebSocket
+  // Watch for board changes to join/leave via WebSocket and load global drawings
   watch(
     () => canvasStore.currentBoard?.id,
     (newBoardId, oldBoardId) => {
@@ -82,6 +88,12 @@ onMounted(async () => {
       }
       if (newBoardId && newBoardId !== oldBoardId) {
         joinBoard(newBoardId)
+
+        // Load global drawing paths for the new board
+        if (canvasStore.currentBoard) {
+          canvasStore.globalDrawingPaths = canvasStore.currentBoard.globalDrawingPaths || []
+          console.log('[App] Loaded', canvasStore.globalDrawingPaths.length, 'global drawing paths for board:', newBoardId)
+        }
       }
     }
   )

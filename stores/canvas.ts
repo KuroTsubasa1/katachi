@@ -480,7 +480,15 @@ export const useCanvasStore = defineStore('canvas', {
       }
 
       this.currentBoard.shapes.push(newShape)
+      this.currentBoard.updatedAt = new Date().toISOString()
+
       console.log('Shape added to store:', newShape.type, 'Total shapes:', this.currentBoard.shapes.length)
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('shape', 'create', { ...newShape, boardId: this.currentBoard.id })
+      }
     },
 
     removeShape(shapeId: string) {
