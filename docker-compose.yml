@@ -1,7 +1,6 @@
-version: '3.8'
-
 services:
   app:
+    container_name: katachi-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,13 +16,14 @@ services:
     volumes:
       - ./data:/app/data
     networks:
-      - mila_note_network
+      - katachi_network
     depends_on:
       - db
       - redis
 
   # Database service (PostgreSQL for storing notes and user data)
   db:
+    container_name: katachi-db
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: katachi
@@ -32,26 +32,27 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - katachi_postgres_data:/var/lib/postgresql/data
     networks:
-      - mila_note_network
+      - katachi_network
     restart: unless-stopped
 
   # Redis for caching and real-time features
   redis:
+    container_name: katachi-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - katachi_redis_data:/data
     networks:
-      - mila_note_network
+      - katachi_network
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  redis_data:
+  katachi_postgres_data:
+  katachi_redis_data:
 
 networks:
-  mila_note_network:
+  katachi_network:
     driver: bridge
