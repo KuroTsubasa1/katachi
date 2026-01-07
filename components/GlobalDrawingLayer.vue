@@ -157,17 +157,29 @@ const startDrawing = (e: MouseEvent) => {
 
       // Immediately save the shape
       if (shapeStart.value && shapeEnd.value) {
-        // Normalize position and size to handle any drag direction
+        const shapeType = canvasStore.currentTool.type as 'rectangle' | 'circle' | 'line' | 'arrow'
+
+        // For lines and arrows, preserve direction (don't normalize)
+        // For rectangles and circles, normalize to handle any drag direction
+        const isDirectional = shapeType === 'line' || shapeType === 'arrow'
+
         const newShape = {
-          type: canvasStore.currentTool.type as 'rectangle' | 'circle' | 'line' | 'arrow',
-          position: {
-            x: Math.min(shapeStart.value.x, shapeEnd.value.x),
-            y: Math.min(shapeStart.value.y, shapeEnd.value.y)
-          },
-          size: {
-            width: Math.abs(shapeEnd.value.x - shapeStart.value.x),
-            height: Math.abs(shapeEnd.value.y - shapeStart.value.y)
-          },
+          type: shapeType,
+          position: isDirectional ?
+            { x: shapeStart.value.x, y: shapeStart.value.y } :
+            {
+              x: Math.min(shapeStart.value.x, shapeEnd.value.x),
+              y: Math.min(shapeStart.value.y, shapeEnd.value.y)
+            },
+          size: isDirectional ?
+            {
+              width: shapeEnd.value.x - shapeStart.value.x,
+              height: shapeEnd.value.y - shapeStart.value.y
+            } :
+            {
+              width: Math.abs(shapeEnd.value.x - shapeStart.value.x),
+              height: Math.abs(shapeEnd.value.y - shapeStart.value.y)
+            },
           color: canvasStore.currentTool.color || '#000000',
           width: canvasStore.currentTool.width || 2,
           fill: false
