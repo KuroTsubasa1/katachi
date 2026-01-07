@@ -112,14 +112,21 @@ const startDrawing = (e: MouseEvent) => {
     return
   }
 
-  // Eraser tool - click to delete entire strokes
+  // Eraser tool - drag to erase strokes
   if (canvasStore.currentTool.type === 'eraser') {
+    isDrawing.value = true
+    currentPath.value = [canvasCoords]
+
+    // Check if starting on a stroke and delete it
     const strokeIndex = findStrokeAtPoint(canvasCoords.x, canvasCoords.y)
     if (strokeIndex !== null) {
       console.log('[Eraser] Deleting stroke at index:', strokeIndex)
       canvasStore.deleteGlobalDrawingPath(strokeIndex)
       redrawCanvas()
     }
+
+    // Attach mouseup listener
+    document.addEventListener('mouseup', handleDocumentMouseUp)
     return
   }
 
@@ -267,7 +274,21 @@ const draw = (e: MouseEvent) => {
     }
   }
 
-  // Regular drawing
+  // Eraser dragging - check for strokes to delete
+  if (isDrawing.value && canvasStore.currentTool.type === 'eraser') {
+    currentPath.value.push(canvasCoords)
+
+    // Check if eraser path intersects any strokes
+    const strokeIndex = findStrokeAtPoint(canvasCoords.x, canvasCoords.y)
+    if (strokeIndex !== null) {
+      console.log('[Eraser] Deleting stroke during drag at index:', strokeIndex)
+      canvasStore.deleteGlobalDrawingPath(strokeIndex)
+      redrawCanvas()
+    }
+    return
+  }
+
+  // Regular pen drawing
   if (!isDrawing.value) return
 
   currentPath.value.push(canvasCoords)
@@ -275,15 +296,10 @@ const draw = (e: MouseEvent) => {
   const ctx = canvas.value.getContext('2d')
   if (!ctx) return
 
-  if (canvasStore.currentTool.type === 'eraser') {
-    ctx.globalCompositeOperation = 'destination-out'
-    ctx.strokeStyle = 'rgba(0,0,0,1)'
-    ctx.lineWidth = (canvasStore.currentTool.width || 2) * 3
-  } else {
-    ctx.globalCompositeOperation = 'source-over'
-    ctx.strokeStyle = canvasStore.currentTool.color || '#000000'
-    ctx.lineWidth = canvasStore.currentTool.width || 2
-  }
+  // Pen tool settings
+  ctx.globalCompositeOperation = 'source-over'
+  ctx.strokeStyle = canvasStore.currentTool.color || '#000000'
+  ctx.lineWidth = canvasStore.currentTool.width || 2
 
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -391,12 +407,18 @@ const stopDrawing = () => {
   if (!isDrawing.value) return
   isDrawing.value = false
 
-  // Save the path to store
+  // Don't save eraser paths (they just delete strokes)
+  if (canvasStore.currentTool.type === 'eraser') {
+    currentPath.value = []
+    return
+  }
+
+  // Save the path to store (pen tool only at this point)
   if (currentPath.value.length > 0) {
     const pathData = JSON.stringify({
       points: currentPath.value,
-      color: canvasStore.currentTool.type === 'eraser' ? 'eraser' : canvasStore.currentTool.color,
-      width: canvasStore.currentTool.width
+      color: canvasStore.currentTool.color || '#000000',
+      width: canvasStore.currentTool.width || 2
     })
     canvasStore.addGlobalDrawingPath(pathData)
   }
