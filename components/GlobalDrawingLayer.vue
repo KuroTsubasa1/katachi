@@ -27,6 +27,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useCanvasStore } from '~/stores/canvas'
+import { useSync } from '~/composables/useSync'
 
 const canvasStore = useCanvasStore()
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -274,12 +275,13 @@ const draw = (e: MouseEvent) => {
     }
   }
 
-  // Eraser dragging - check for strokes to delete
+  // Eraser dragging - check for strokes AND shapes to delete
   if (isDrawing.value && canvasStore.currentTool.type === 'eraser') {
     currentPath.value.push(canvasCoords)
 
-    // Check if eraser path intersects any strokes
-    // Make a copy of the array length to avoid issues during deletion
+    let deletedSomething = false
+
+    // Check if eraser intersects any pen strokes
     const pathCount = canvasStore.globalDrawingPaths.length
     for (let i = pathCount - 1; i >= 0; i--) {
       try {
@@ -292,13 +294,52 @@ const draw = (e: MouseEvent) => {
           if (distance < 10) {
             console.log('[Eraser] Deleting stroke at index:', i)
             canvasStore.deleteGlobalDrawingPath(i)
-            redrawCanvas()
-            break // Only delete one stroke per mousemove
+            deletedSomething = true
+            break
           }
         }
+        if (deletedSomething) break // Only delete one item per mousemove
       } catch (error) {
         console.error('[Eraser] Error checking stroke:', error)
       }
+    }
+
+    // Also check for shapes to delete
+    if (!deletedSomething && canvasStore.currentBoard?.shapes) {
+      const shapesCount = canvasStore.currentBoard.shapes.length
+      for (let i = shapesCount - 1; i >= 0; i--) {
+        const shape = canvasStore.currentBoard.shapes[i]
+
+        // Check if eraser position is inside or near the shape bounds
+        const shapeX = shape.position.x
+        const shapeY = shape.position.y
+        const shapeWidth = shape.size.width
+        const shapeHeight = shape.size.height
+
+        // Check if point is inside shape bounding box (with 10px tolerance)
+        if (canvasCoords.x >= shapeX - 10 &&
+            canvasCoords.x <= shapeX + shapeWidth + 10 &&
+            canvasCoords.y >= shapeY - 10 &&
+            canvasCoords.y <= shapeY + shapeHeight + 10) {
+          console.log('[Eraser] Deleting shape at index:', i)
+          const shapeId = shape.id
+          canvasStore.currentBoard.shapes.splice(i, 1)
+          canvasStore.currentBoard.updatedAt = new Date().toISOString()
+
+          // Sync shape deletion to server
+          if (typeof window !== 'undefined') {
+            const { queueSync } = useSync()
+            queueSync('shape', 'delete', { id: shapeId, boardId: canvasStore.currentBoard.id })
+          }
+
+          deletedSomething = true
+          break
+        }
+      }
+    }
+
+    if (deletedSomething) {
+      redrawCanvas()
     }
     return
   }
