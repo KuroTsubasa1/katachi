@@ -459,23 +459,30 @@ async function syncShape(userId: string, op: SyncOperation, results: any) {
 
     results.synced.push(op.id)
   } else if (op.operation === 'delete') {
+    // Query for the shape BEFORE deleting to get boardId
+    const shape = await db.query.shapes.findFirst({ where: eq(shapes.id, op.id) })
+
+    if (!shape) {
+      results.errors.push({ id: op.id, message: 'Shape not found' })
+      return
+    }
+
+    // Now delete it
     await db.delete(shapes).where(eq(shapes.id, op.id))
 
     // Update board timestamp
-    const shape = await db.query.shapes.findFirst({ where: eq(shapes.id, op.id) })
-    if (shape) {
-      await db.update(boards)
-        .set({ updatedAt: new Date() })
-        .where(eq(boards.id, shape.boardId))
+    await db.update(boards)
+      .set({ updatedAt: new Date() })
+      .where(eq(boards.id, shape.boardId))
 
-      // Broadcast to WebSocket clients
-      await RealtimeService.publishBoardChange(shape.boardId, {
-        type: 'shape_deleted',
-        shapeId: op.id,
-        userId
-      })
-    }
+    // Broadcast to WebSocket clients
+    await RealtimeService.publishBoardChange(shape.boardId, {
+      type: 'shape_deleted',
+      shapeId: op.id,
+      userId
+    })
 
+    console.log('[Shape] Deleted and broadcasted shape:', op.id)
     results.synced.push(op.id)
   }
 }
