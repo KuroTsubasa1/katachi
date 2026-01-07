@@ -130,6 +130,176 @@
         :isSelected="isSelected"
         @update:todoData="updateTodoData"
       />
+
+      <!-- Photography/Videography Cards -->
+
+      <!-- Shot List Card -->
+      <ShotListCard
+        v-else-if="card.type === 'shot-list'"
+        :card="card"
+      />
+
+      <!-- Equipment Checklist Card -->
+      <EquipmentChecklistCard
+        v-else-if="card.type === 'equipment-checklist'"
+        :card="card"
+      />
+
+      <!-- Camera Settings Card -->
+      <CameraSettingsCard
+        v-else-if="card.type === 'camera-settings'"
+        :card="card"
+      />
+
+      <!-- Release Form Tracker Card -->
+      <ReleaseFormTrackerCard
+        v-else-if="card.type === 'release-form-tracker'"
+        :card="card"
+      />
+
+      <!-- File Naming Convention Card -->
+      <FileNamingConventionCard
+        v-else-if="card.type === 'file-naming-convention'"
+        :card="card"
+      />
+
+      <!-- Mood Board Card -->
+      <MoodBoardCard
+        v-else-if="card.type === 'mood-board'"
+        :card="card"
+      />
+
+      <!-- Contact Sheet Card -->
+      <ContactSheetCard
+        v-else-if="card.type === 'contact-sheet'"
+        :card="card"
+      />
+
+      <!-- Talent/Model Card -->
+      <TalentModelCard
+        v-else-if="card.type === 'talent-model'"
+        :card="card"
+      />
+
+      <!-- EXIF Data Viewer Card -->
+      <ExifDataViewerCard
+        v-else-if="card.type === 'exif-viewer'"
+        :card="card"
+      />
+
+      <!-- Color Palette Card -->
+      <ColorPaletteCard
+        v-else-if="card.type === 'color-palette'"
+        :card="card"
+      />
+
+      <!-- Before/After Card -->
+      <BeforeAfterCard
+        v-else-if="card.type === 'before-after'"
+        :card="card"
+      />
+
+      <!-- Location Scout Card -->
+      <LocationScoutCard
+        v-else-if="card.type === 'location-scout'"
+        :card="card"
+      />
+
+      <!-- LUT Reference Card -->
+      <LUTReferenceCard
+        v-else-if="card.type === 'lut-reference'"
+        :card="card"
+      />
+
+      <!-- Call Sheet Card -->
+      <CallSheetCard
+        v-else-if="card.type === 'call-sheet'"
+        :card="card"
+      />
+
+      <!-- Weather Planning Card -->
+      <WeatherPlanningCard
+        v-else-if="card.type === 'weather-planning'"
+        :card="card"
+      />
+
+      <!-- Script Breakdown Card -->
+      <ScriptBreakdownCard
+        v-else-if="card.type === 'script-breakdown'"
+        :card="card"
+      />
+
+      <!-- Edit Decision List Card -->
+      <EditDecisionListCard
+        v-else-if="card.type === 'edit-decision-list'"
+        :card="card"
+      />
+
+      <!-- Delivery Specs Card -->
+      <DeliverySpecsCard
+        v-else-if="card.type === 'delivery-specs'"
+        :card="card"
+      />
+
+      <!-- Budget Tracker Card -->
+      <BudgetTrackerCard
+        v-else-if="card.type === 'budget-tracker'"
+        :card="card"
+      />
+
+      <!-- Depth of Field Calculator Card -->
+      <DepthOfFieldCalculatorCard
+        v-else-if="card.type === 'dof-calculator'"
+        :card="card"
+      />
+
+      <!-- Time-lapse Calculator Card -->
+      <TimeLapseCalculatorCard
+        v-else-if="card.type === 'timelapse-calculator'"
+        :card="card"
+      />
+
+      <!-- Lens Simulator Card -->
+      <LensSimulatorCard
+        v-else-if="card.type === 'lens-simulator'"
+        :card="card"
+      />
+
+      <!-- Aspect Ratio Frame Card -->
+      <AspectRatioFrameCard
+        v-else-if="card.type === 'aspect-ratio-frame'"
+        :card="card"
+      />
+
+      <!-- Timecode Notes Card -->
+      <TimecodeNotesCard
+        v-else-if="card.type === 'timecode-notes'"
+        :card="card"
+      />
+
+      <!-- Shot Sequence Card -->
+      <ShotSequenceCard
+        v-else-if="card.type === 'shot-sequence'"
+        :card="card"
+      />
+
+      <!-- Client Feedback Card -->
+      <ClientFeedbackCard
+        v-else-if="card.type === 'client-feedback'"
+        :card="card"
+      />
+
+      <!-- Lighting Diagram Card -->
+      <LightingDiagramCard
+        v-else-if="card.type === 'lighting-diagram'"
+        :card="card"
+      />
+
+      <!-- Camera Movement Diagram Card -->
+      <CameraMovementDiagramCard
+        v-else-if="card.type === 'camera-movement'"
+        :card="card"
+      />
     </div>
 
     <!-- Card Controls (when selected) -->
@@ -190,6 +360,37 @@ import VideoCard from './VideoCard.vue'
 import MapCard from './MapCard.vue'
 import MarkdownCard from './MarkdownCard.vue'
 import TodoListCard from './TodoListCard.vue'
+import StoryboardCard from './StoryboardCard.vue'
+
+// Photography/Videography Cards
+import ShotListCard from './photography/ShotListCard.vue'
+import EquipmentChecklistCard from './photography/EquipmentChecklistCard.vue'
+import CameraSettingsCard from './photography/CameraSettingsCard.vue'
+import ReleaseFormTrackerCard from './photography/ReleaseFormTrackerCard.vue'
+import FileNamingConventionCard from './photography/FileNamingConventionCard.vue'
+import MoodBoardCard from './photography/MoodBoardCard.vue'
+import ContactSheetCard from './photography/ContactSheetCard.vue'
+import TalentModelCard from './photography/TalentModelCard.vue'
+import ExifDataViewerCard from './photography/ExifDataViewerCard.vue'
+import ColorPaletteCard from './photography/ColorPaletteCard.vue'
+import BeforeAfterCard from './photography/BeforeAfterCard.vue'
+import LocationScoutCard from './photography/LocationScoutCard.vue'
+import LUTReferenceCard from './photography/LUTReferenceCard.vue'
+import CallSheetCard from './photography/CallSheetCard.vue'
+import WeatherPlanningCard from './photography/WeatherPlanningCard.vue'
+import ScriptBreakdownCard from './photography/ScriptBreakdownCard.vue'
+import EditDecisionListCard from './photography/EditDecisionListCard.vue'
+import DeliverySpecsCard from './photography/DeliverySpecsCard.vue'
+import BudgetTrackerCard from './photography/BudgetTrackerCard.vue'
+import DepthOfFieldCalculatorCard from './photography/DepthOfFieldCalculatorCard.vue'
+import TimeLapseCalculatorCard from './photography/TimeLapseCalculatorCard.vue'
+import LensSimulatorCard from './photography/LensSimulatorCard.vue'
+import AspectRatioFrameCard from './photography/AspectRatioFrameCard.vue'
+import TimecodeNotesCard from './photography/TimecodeNotesCard.vue'
+import ShotSequenceCard from './photography/ShotSequenceCard.vue'
+import ClientFeedbackCard from './photography/ClientFeedbackCard.vue'
+import LightingDiagramCard from './photography/LightingDiagramCard.vue'
+import CameraMovementDiagramCard from './photography/CameraMovementDiagramCard.vue'
 
 const props = defineProps<{
   card: NoteCardType

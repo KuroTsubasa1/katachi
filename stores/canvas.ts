@@ -714,6 +714,467 @@ export const useCanvasStore = defineStore('canvas', {
       }
 
       return newCard
+    },
+
+    // ==================== PHOTOGRAPHY/VIDEOGRAPHY CARD CREATION ====================
+
+    addShotListCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'shot-list',
+        position,
+        size: { width: 700, height: 450 },
+        content: '',
+        shotListData: {
+          title: 'Shot List',
+          items: []
+        },
+        color: '#fff7ed'
+      })
+    },
+
+    addEquipmentChecklistCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'equipment-checklist',
+        position,
+        size: { width: 500, height: 400 },
+        content: '',
+        equipmentChecklistData: {
+          title: 'Equipment Checklist',
+          items: []
+        },
+        color: '#f0fdf4'
+      })
+    },
+
+    addCameraSettingsCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'camera-settings',
+        position,
+        size: { width: 450, height: 400 },
+        content: '',
+        cameraSettingsData: {
+          title: 'Camera Settings',
+          presets: []
+        },
+        color: '#eff6ff'
+      })
+    },
+
+    addReleaseFormTrackerCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'release-form-tracker',
+        position,
+        size: { width: 700, height: 400 },
+        content: '',
+        releaseFormTrackerData: {
+          title: 'Release Form Tracker',
+          entries: []
+        },
+        color: '#fef2f2'
+      })
+    },
+
+    addFileNamingConventionCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'file-naming-convention',
+        position,
+        size: { width: 450, height: 400 },
+        content: '',
+        fileNamingConventionData: {
+          title: 'File Naming Convention',
+          pattern: '{project}_{date}_{scene}_{take}',
+          rules: [],
+          separatorType: 'underscore',
+          exampleOutput: 'project_2025-01-07_scene01_take03.mp4'
+        },
+        color: '#faf5ff'
+      })
+    },
+
+    addMoodBoardCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'mood-board',
+        position,
+        size: { width: 500, height: 500 },
+        content: '',
+        moodBoardData: {
+          title: 'Mood Board',
+          images: [],
+          layout: '3x3'
+        },
+        color: '#faf5ff'
+      })
+    },
+
+    addContactSheetCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'contact-sheet',
+        position,
+        size: { width: 600, height: 500 },
+        content: '',
+        contactSheetData: {
+          title: 'Contact Sheet',
+          images: [],
+          thumbnailSize: 'medium',
+          columns: 4,
+          showFilenames: true
+        },
+        color: '#ffffff'
+      })
+    },
+
+    addTalentModelCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'talent-model',
+        position,
+        size: { width: 400, height: 600 },
+        content: '',
+        talentModelData: {
+          name: 'New Talent',
+          role: '',
+          contact: { email: '', phone: '' },
+          portfolioImages: [],
+          measurements: '',
+          notes: '',
+          socialMedia: []
+        },
+        color: '#fff7ed'
+      })
+    },
+
+    addExifDataViewerCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'exif-viewer',
+        position,
+        size: { width: 500, height: 450 },
+        content: '',
+        exifDataViewerData: {
+          imageUrl: '',
+          exifData: null,
+          displayMode: 'detailed'
+        },
+        color: '#ffffff'
+      })
+    },
+
+    addColorPaletteCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'color-palette',
+        position,
+        size: { width: 450, height: 400 },
+        content: '',
+        colorPaletteData: {
+          imageUrl: '',
+          colors: [],
+          paletteSize: 5,
+          sortBy: 'dominance'
+        },
+        color: '#ffffff'
+      })
+    },
+
+    addBeforeAfterCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'before-after',
+        position,
+        size: { width: 500, height: 400 },
+        content: '',
+        beforeAfterData: {
+          beforeImageUrl: '',
+          afterImageUrl: '',
+          sliderPosition: 50,
+          labels: { before: 'Before', after: 'After' }
+        },
+        color: '#ffffff'
+      })
+    },
+
+    addLocationScoutCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'location-scout',
+        position,
+        size: { width: 500, height: 600 },
+        content: '',
+        locationScoutData: {
+          locationName: '',
+          address: '',
+          coordinates: undefined,
+          images: [],
+          notes: '',
+          accessibility: '',
+          permits: ''
+        },
+        color: '#f0fdf4'
+      })
+    },
+
+    addLUTReferenceCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'lut-reference',
+        position,
+        size: { width: 500, height: 450 },
+        content: '',
+        lutReferenceData: {
+          title: 'LUT Reference',
+          luts: []
+        },
+        color: '#faf5ff'
+      })
+    },
+
+    addCallSheetCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'call-sheet',
+        position,
+        size: { width: 600, height: 500 },
+        content: '',
+        callSheetData: {
+          title: 'Call Sheet',
+          shootDate: '',
+          callTime: '',
+          wrapTime: '',
+          entries: [],
+          contacts: []
+        },
+        color: '#eff6ff'
+      })
+    },
+
+    addWeatherPlanningCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'weather-planning',
+        position,
+        size: { width: 450, height: 450 },
+        content: '',
+        weatherPlanningData: {
+          location: '',
+          date: new Date().toISOString().split('T')[0],
+          sunrise: '',
+          sunset: '',
+          goldenHourMorning: { start: '', end: '' },
+          goldenHourEvening: { start: '', end: '' },
+          blueHour: { start: '', end: '' },
+          weather: '',
+          backupPlan: ''
+        },
+        color: '#fef3c7'
+      })
+    },
+
+    addScriptBreakdownCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'script-breakdown',
+        position,
+        size: { width: 600, height: 500 },
+        content: '',
+        scriptBreakdownData: {
+          title: 'Script Breakdown',
+          scenes: []
+        },
+        color: '#fff7ed'
+      })
+    },
+
+    addEditDecisionListCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'edit-decision-list',
+        position,
+        size: { width: 650, height: 450 },
+        content: '',
+        editDecisionListData: {
+          title: 'Edit Decision List',
+          projectName: '',
+          decisions: []
+        },
+        color: '#f0f9ff'
+      })
+    },
+
+    addDeliverySpecsCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'delivery-specs',
+        position,
+        size: { width: 500, height: 450 },
+        content: '',
+        deliverySpecsData: {
+          title: 'Delivery Specs',
+          client: '',
+          dueDate: '',
+          specs: []
+        },
+        color: '#fef2f2'
+      })
+    },
+
+    addBudgetTrackerCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'budget-tracker',
+        position,
+        size: { width: 600, height: 450 },
+        content: '',
+        budgetTrackerData: {
+          title: 'Budget Tracker',
+          currency: 'USD',
+          totalBudget: 0,
+          items: [],
+          totalSpent: 0,
+          remaining: 0
+        },
+        color: '#f0fdf4'
+      })
+    },
+
+    addDepthOfFieldCalculatorCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'dof-calculator',
+        position,
+        size: { width: 400, height: 400 },
+        content: '',
+        depthOfFieldData: {
+          focalLength: 50,
+          aperture: 2.8,
+          subjectDistance: 3,
+          sensorSize: 'full-frame',
+          calculatedDOF: null
+        },
+        color: '#eff6ff'
+      })
+    },
+
+    addTimeLapseCalculatorCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'timelapse-calculator',
+        position,
+        size: { width: 400, height: 350 },
+        content: '',
+        timeLapseCalculatorData: {
+          eventDuration: 60,
+          clipLength: 10,
+          fps: 24,
+          calculatedInterval: null,
+          calculatedFrames: null,
+          estimatedFileSize: null
+        },
+        color: '#eff6ff'
+      })
+    },
+
+    addLensSimulatorCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'lens-simulator',
+        position,
+        size: { width: 500, height: 450 },
+        content: '',
+        lensSimulatorData: {
+          referenceImageUrl: '',
+          currentFocalLength: 50,
+          focalLengths: [14, 24, 35, 50, 85, 135, 200],
+          sensorSize: 'full-frame',
+          cropFactor: 1
+        },
+        color: '#eff6ff'
+      })
+    },
+
+    addAspectRatioFrameCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'aspect-ratio-frame',
+        position,
+        size: { width: 500, height: 450 },
+        content: '',
+        aspectRatioFrameData: {
+          imageUrl: '',
+          aspectRatio: '16:9',
+          customRatio: undefined,
+          cropPosition: { x: 0, y: 0 },
+          overlayColor: '#000000',
+          overlayOpacity: 0.5
+        },
+        color: '#ffffff'
+      })
+    },
+
+    addTimecodeNotesCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'timecode-notes',
+        position,
+        size: { width: 600, height: 500 },
+        content: '',
+        timecodeNotesData: {
+          title: 'Timecode Notes',
+          videoUrl: '',
+          notes: []
+        },
+        color: '#f0f9ff'
+      })
+    },
+
+    addShotSequenceCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'shot-sequence',
+        position,
+        size: { width: 600, height: 450 },
+        content: '',
+        shotSequenceData: {
+          title: 'Shot Sequence',
+          frames: [],
+          sequenceType: 'linear'
+        },
+        color: '#faf5ff'
+      })
+    },
+
+    addClientFeedbackCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'client-feedback',
+        position,
+        size: { width: 500, height: 450 },
+        content: '',
+        clientFeedbackData: {
+          title: 'Client Feedback',
+          version: 'v1.0',
+          feedback: []
+        },
+        color: '#fef3c7'
+      })
+    },
+
+    addLightingDiagramCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'lighting-diagram',
+        position,
+        size: { width: 700, height: 600 },
+        content: '',
+        lightingDiagramData: {
+          title: 'Lighting Setup',
+          lights: [],
+          subject: { x: 350, y: 300, icon: 'person' },
+          background: { x: 350, y: 100 },
+          camera: { x: 350, y: 500, rotation: 0 },
+          annotations: [],
+          measurements: [],
+          drawingPaths: []
+        },
+        color: '#fffbeb'
+      })
+    },
+
+    addCameraMovementDiagramCard(position: { x: number, y: number }): NoteCard {
+      return this.addCard({
+        type: 'camera-movement',
+        position,
+        size: { width: 600, height: 500 },
+        content: '',
+        cameraMovementData: {
+          title: 'Camera Movement',
+          movementType: 'dolly',
+          drawingPaths: [],
+          annotations: [],
+          startPosition: { x: 100, y: 400 },
+          endPosition: { x: 500, y: 400 }
+        },
+        color: '#eff6ff'
+      })
     }
   }
 })
