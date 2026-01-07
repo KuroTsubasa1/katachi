@@ -257,6 +257,7 @@ export const useSync = () => {
   const handleBoardUpdated = (event: any) => {
     const canvasStore = useCanvasStore()
     if (!canvasStore.currentBoard || canvasStore.currentBoard.id !== event.boardId) {
+      console.log('[WebSocket] Board updated but not current board')
       return
     }
 
@@ -264,15 +265,21 @@ export const useSync = () => {
 
     // Update board properties including global drawing paths
     if (event.data.globalDrawingPaths !== undefined) {
+      console.log('[WebSocket] Updating globalDrawingPaths from', canvasStore.globalDrawingPaths.length, 'to', event.data.globalDrawingPaths.length, 'paths')
       canvasStore.globalDrawingPaths = event.data.globalDrawingPaths
     }
 
-    if (event.data.name) {
+    if (event.data.name !== undefined) {
       canvasStore.currentBoard.name = event.data.name
     }
 
-    if (event.data.backgroundColor) {
+    if (event.data.backgroundColor !== undefined) {
       canvasStore.currentBoard.backgroundColor = event.data.backgroundColor
+    }
+
+    if (event.data.shapes !== undefined && canvasStore.currentBoard.shapes !== undefined) {
+      console.log('[WebSocket] Updating shapes from', canvasStore.currentBoard.shapes.length, 'to', event.data.shapes.length, 'shapes')
+      canvasStore.currentBoard.shapes = event.data.shapes
     }
 
     canvasStore.currentBoard.updatedAt = new Date().toISOString()

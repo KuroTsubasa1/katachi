@@ -99,10 +99,8 @@ async function syncBoard(userId: string, op: SyncOperation, results: any) {
       return
     }
 
-    // Conflict detection - skip for globalDrawingPaths updates (they're additive)
-    const isDrawingUpdate = op.data.globalDrawingPaths !== undefined &&
-                            op.data.name === undefined &&
-                            op.data.backgroundColor === undefined
+    // Conflict detection - skip for globalDrawingPaths updates (they're additive/collaborative)
+    const isDrawingUpdate = op.data.globalDrawingPaths !== undefined
 
     if (!isDrawingUpdate && existing.version !== op.version) {
       results.conflicts.push({

@@ -34,8 +34,11 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 const isDrawing = ref(false)
 const currentPath = ref<{x: number, y: number}[]>([])
 const selectedStrokeIndex = ref<number | null>(null)
+const selectedShapeIndex = ref<number | null>(null)
 const isDraggingStroke = ref(false)
+const isDraggingShape = ref(false)
 const strokeDragStart = ref<{x: number, y: number} | null>(null)
+const shapeDragStart = ref<{x: number, y: number} | null>(null)
 const shapeStart = ref<{x: number, y: number} | null>(null)
 const shapeEnd = ref<{x: number, y: number} | null>(null)
 const isDrawingShape = ref(false)
@@ -131,18 +134,38 @@ const startDrawing = (e: MouseEvent) => {
     return
   }
 
-  // Move stroke mode - select and drag strokes
+  // Move mode - select and drag strokes OR shapes
   if (canvasStore.currentTool.type === 'move-stroke') {
+    // Try finding a stroke first
     const strokeIndex = findStrokeAtPoint(canvasCoords.x, canvasCoords.y)
     if (strokeIndex !== null) {
       selectedStrokeIndex.value = strokeIndex
+      selectedShapeIndex.value = null
       isDraggingStroke.value = true
       strokeDragStart.value = canvasCoords
+      console.log('[Move] Selected stroke at index:', strokeIndex)
       redrawCanvas()
 
       // Attach mouseup listener (mousemove already attached via watch)
       document.addEventListener('mouseup', handleDocumentMouseUp)
+      return
     }
+
+    // If no stroke found, try finding a shape
+    const shapeIndex = findShapeAtPoint(canvasCoords.x, canvasCoords.y)
+    if (shapeIndex !== null) {
+      selectedShapeIndex.value = shapeIndex
+      selectedStrokeIndex.value = null
+      isDraggingShape.value = true
+      shapeDragStart.value = canvasCoords
+      console.log('[Move] Selected shape at index:', shapeIndex)
+      redrawCanvas()
+
+      // Attach mouseup listener
+      document.addEventListener('mouseup', handleDocumentMouseUp)
+      return
+    }
+
     return
   }
 
@@ -229,16 +252,38 @@ const handleDocumentMouseUp = (e: MouseEvent) => {
 }
 
 const findStrokeAtPoint = (x: number, y: number): number | null => {
-  // Find if clicking near any stroke (within 10px tolerance)
+  // Find if clicking near any stroke (increased to 20px tolerance for easier selection)
   for (let i = canvasStore.globalDrawingPaths.length - 1; i >= 0; i--) {
     const pathData = JSON.parse(canvasStore.globalDrawingPaths[i])
     const points = pathData.points
 
     for (const point of points) {
       const distance = Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2))
-      if (distance < 10) {
+      if (distance < 20) { // Increased from 10px to 20px
         return i
       }
+    }
+  }
+  return null
+}
+
+const findShapeAtPoint = (x: number, y: number): number | null => {
+  // Find if clicking inside any shape (with 10px tolerance)
+  if (!canvasStore.currentBoard?.shapes) return null
+
+  for (let i = canvasStore.currentBoard.shapes.length - 1; i >= 0; i--) {
+    const shape = canvasStore.currentBoard.shapes[i]
+    const shapeX = shape.position.x
+    const shapeY = shape.position.y
+    const shapeWidth = shape.size.width
+    const shapeHeight = shape.size.height
+
+    // Check if point is inside shape bounding box (with tolerance)
+    if (x >= shapeX - 10 &&
+        x <= shapeX + shapeWidth + 10 &&
+        y >= shapeY - 10 &&
+        y <= shapeY + shapeHeight + 10) {
+      return i
     }
   }
   return null
@@ -260,6 +305,25 @@ const draw = (e: MouseEvent) => {
     const dy = canvasCoords.y - strokeDragStart.value.y
     canvasStore.moveGlobalDrawingPath(selectedStrokeIndex.value, dx, dy)
     strokeDragStart.value = canvasCoords
+    redrawCanvas()
+    return
+  }
+
+  // Moving a shape
+  if (isDraggingShape.value && shapeDragStart.value !== null && selectedShapeIndex.value !== null) {
+    if (!canvasStore.currentBoard?.shapes[selectedShapeIndex.value]) return
+
+    const dx = canvasCoords.x - shapeDragStart.value.x
+    const dy = canvasCoords.y - shapeDragStart.value.y
+
+    const shape = canvasStore.currentBoard.shapes[selectedShapeIndex.value]
+    shape.position = {
+      x: shape.position.x + dx,
+      y: shape.position.y + dy
+    }
+
+    shapeDragStart.value = canvasCoords
+    canvasStore.currentBoard.updatedAt = new Date().toISOString()
     redrawCanvas()
     return
   }
@@ -451,6 +515,27 @@ const stopDrawing = () => {
   if (isDraggingStroke.value) {
     isDraggingStroke.value = false
     strokeDragStart.value = null
+    selectedStrokeIndex.value = null
+    redrawCanvas() // Clear selection highlight
+    return
+  }
+
+  // Stop moving shape
+  if (isDraggingShape.value) {
+    isDraggingShape.value = false
+    shapeDragStart.value = null
+
+    // Sync shape position update to server
+    if (selectedShapeIndex.value !== null && canvasStore.currentBoard?.shapes[selectedShapeIndex.value]) {
+      const shape = canvasStore.currentBoard.shapes[selectedShapeIndex.value]
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('shape', 'update', { ...shape, boardId: canvasStore.currentBoard.id })
+      }
+    }
+
+    selectedShapeIndex.value = null
+    redrawCanvas() // Clear selection highlight
     return
   }
 

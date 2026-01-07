@@ -406,6 +406,8 @@ export const useCanvasStore = defineStore('canvas', {
         const { queueSync } = useSync()
         queueSync('board', 'update', {
           id: this.currentBoard.id,
+          name: this.currentBoard.name,
+          backgroundColor: this.currentBoard.backgroundColor,
           globalDrawingPaths: this.globalDrawingPaths,
           updatedAt: this.currentBoard.updatedAt
         })
@@ -424,6 +426,8 @@ export const useCanvasStore = defineStore('canvas', {
           const { queueSync } = useSync()
           queueSync('board', 'update', {
             id: this.currentBoard.id,
+            name: this.currentBoard.name,
+            backgroundColor: this.currentBoard.backgroundColor,
             globalDrawingPaths: [],
             updatedAt: this.currentBoard.updatedAt
           })
@@ -445,6 +449,20 @@ export const useCanvasStore = defineStore('canvas', {
 
     deleteGlobalDrawingPath(pathIndex: number) {
       this.globalDrawingPaths.splice(pathIndex, 1)
+
+      // Sync deletion to server
+      if (this.currentBoard && typeof window !== 'undefined') {
+        this.currentBoard.updatedAt = new Date().toISOString()
+        console.log('[Store] Syncing stroke deletion, remaining paths:', this.globalDrawingPaths.length)
+        const { queueSync } = useSync()
+        queueSync('board', 'update', {
+          id: this.currentBoard.id,
+          name: this.currentBoard.name,
+          backgroundColor: this.currentBoard.backgroundColor,
+          globalDrawingPaths: this.globalDrawingPaths,
+          updatedAt: this.currentBoard.updatedAt
+        })
+      }
     },
 
     addConnection(fromCardId: string, toCardId: string) {
