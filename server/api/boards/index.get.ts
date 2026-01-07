@@ -79,6 +79,7 @@ export default defineEventHandler(async (event) => {
     userId: board.userId,
     name: board.name,
     backgroundColor: board.backgroundColor || '#f5f5f5',
+    globalDrawingPaths: board.globalDrawingPaths || [],
     cards: board.cards.map(card => ({
       id: card.id,
       type: card.type,

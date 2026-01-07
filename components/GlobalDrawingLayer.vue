@@ -2,10 +2,14 @@
   <!-- Drawing canvas inside transformed space so strokes move with canvas -->
   <div
     v-show="canvasStore.globalDrawingPaths.length > 0 || isDrawingMode"
-    class="global-drawing-layer absolute inset-0"
+    class="global-drawing-layer absolute"
     :style="{
       pointerEvents: 'none',
-      zIndex: 10000
+      zIndex: 10000,
+      left: '0',
+      top: '0',
+      width: canvasSize.width + 'px',
+      height: canvasSize.height + 'px'
     }"
   >
     <canvas
@@ -13,7 +17,7 @@
       class="absolute top-0 left-0"
       :width="canvasSize.width"
       :height="canvasSize.height"
-:style="{
+      :style="{
         pointerEvents: isDrawingMode ? 'auto' : 'none',
         cursor: isDrawingMode ? (
           currentTool === 'pen' ? 'crosshair' :
@@ -87,11 +91,22 @@ const getCanvasCoords = (e: MouseEvent): { x: number, y: number } => {
 }
 
 const handleMouseDown = (e: MouseEvent) => {
-  console.log('=== MOUSEDOWN EVENT ===')
-  console.log('Tool type:', canvasStore.currentTool.type)
-  console.log('isDrawingShape:', isDrawingShape.value)
-  console.log('shapeStart:', shapeStart.value)
-  console.log('shapeEnd:', shapeEnd.value)
+  const coords = getCanvasCoords(e)
+
+  console.log('[GlobalDrawing] MOUSEDOWN', {
+    screenX: e.clientX,
+    screenY: e.clientY,
+    canvasCoords: coords,
+    canvasSize: canvasSize.value,
+    viewport: canvasStore.viewport,
+    tool: canvasStore.currentTool.type,
+    canvasElement: {
+      width: canvas.value?.width,
+      height: canvas.value?.height,
+      offsetWidth: canvas.value?.offsetWidth,
+      offsetHeight: canvas.value?.offsetHeight
+    }
+  })
 
   startDrawing(e)
 }

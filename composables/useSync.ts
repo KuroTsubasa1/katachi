@@ -64,6 +64,9 @@ export const useSync = () => {
 
       if (response.errors && response.errors.length > 0) {
         console.error('[Sync] Errors:', response.errors)
+        response.errors.forEach((err: any) => {
+          console.error(`[Sync] Error for ${err.id}:`, err.message)
+        })
       }
 
       if (response.conflicts && response.conflicts.length > 0) {
@@ -195,6 +198,7 @@ export const useSync = () => {
     ws.on('card_created', handleCardCreated)
     ws.on('card_updated', handleCardUpdated)
     ws.on('card_deleted', handleCardDeleted)
+    ws.on('board_updated', handleBoardUpdated)
     ws.on('board_joined', handleBoardJoined)
 
     // Connect to WebSocket
@@ -248,6 +252,30 @@ export const useSync = () => {
     canvasStore.currentBoard.cards = canvasStore.currentBoard.cards.filter(c => c.id !== event.cardId)
     canvasStore.currentBoard.updatedAt = new Date().toISOString()
     canvasStore.boardVersion++
+  }
+
+  const handleBoardUpdated = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard || canvasStore.currentBoard.id !== event.boardId) {
+      return
+    }
+
+    console.log('[WebSocket] Board updated:', event)
+
+    // Update board properties including global drawing paths
+    if (event.data.globalDrawingPaths !== undefined) {
+      canvasStore.globalDrawingPaths = event.data.globalDrawingPaths
+    }
+
+    if (event.data.name) {
+      canvasStore.currentBoard.name = event.data.name
+    }
+
+    if (event.data.backgroundColor) {
+      canvasStore.currentBoard.backgroundColor = event.data.backgroundColor
+    }
+
+    canvasStore.currentBoard.updatedAt = new Date().toISOString()
   }
 
   const handleBoardJoined = (event: any) => {

@@ -393,6 +393,17 @@ export const useCanvasStore = defineStore('canvas', {
 
     addGlobalDrawingPath(path: string) {
       this.globalDrawingPaths.push(path)
+
+      // Sync global drawing to board
+      if (this.currentBoard && typeof window !== 'undefined') {
+        this.currentBoard.updatedAt = new Date().toISOString()
+        const { queueSync } = useSync()
+        queueSync('board', 'update', {
+          id: this.currentBoard.id,
+          globalDrawingPaths: this.globalDrawingPaths,
+          updatedAt: this.currentBoard.updatedAt
+        })
+      }
     },
 
     clearGlobalDrawing() {
@@ -400,6 +411,17 @@ export const useCanvasStore = defineStore('canvas', {
       if (this.currentBoard) {
         this.currentBoard.shapes = []
         this.currentBoard.connections = []
+        this.currentBoard.updatedAt = new Date().toISOString()
+
+        // Sync clearing to server
+        if (typeof window !== 'undefined') {
+          const { queueSync } = useSync()
+          queueSync('board', 'update', {
+            id: this.currentBoard.id,
+            globalDrawingPaths: [],
+            updatedAt: this.currentBoard.updatedAt
+          })
+        }
       }
       console.log('Cleared all drawings, shapes, and connections')
     },

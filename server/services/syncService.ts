@@ -82,8 +82,16 @@ async function syncBoard(userId: string, op: SyncOperation, results: any) {
 
     results.synced.push(op.id)
   } else if (op.operation === 'update') {
+    // Check if user has permission to update this board
+    const permission = await getUserBoardPermission(userId, op.id)
+
+    if (!permission || permission === 'view') {
+      results.errors.push({ id: op.id, message: 'Insufficient permissions to update board' })
+      return
+    }
+
     const existing = await db.query.boards.findFirst({
-      where: and(eq(boards.id, op.id), eq(boards.userId, userId))
+      where: eq(boards.id, op.id)
     })
 
     if (!existing) {
@@ -91,8 +99,12 @@ async function syncBoard(userId: string, op: SyncOperation, results: any) {
       return
     }
 
-    // Conflict detection
-    if (existing.version !== op.version) {
+    // Conflict detection - skip for globalDrawingPaths updates (they're additive)
+    const isDrawingUpdate = op.data.globalDrawingPaths !== undefined &&
+                            op.data.name === undefined &&
+                            op.data.backgroundColor === undefined
+
+    if (!isDrawingUpdate && existing.version !== op.version) {
       results.conflicts.push({
         id: op.id,
         type: 'board',
@@ -107,12 +119,25 @@ async function syncBoard(userId: string, op: SyncOperation, results: any) {
       .set({
         name: op.data.name,
         backgroundColor: op.data.backgroundColor,
+        globalDrawingPaths: op.data.globalDrawingPaths,
         updatedAt: new Date(),
         version: existing.version + 1
       })
       .where(eq(boards.id, op.id))
 
     await saveBoardHistory(op.id, userId, existing.version + 1, op.data, 'update')
+
+    // Broadcast board update to WebSocket clients
+    await RealtimeService.publishBoardChange(op.id, {
+      type: 'board_updated',
+      boardId: op.id,
+      userId,
+      data: {
+        name: op.data.name,
+        backgroundColor: op.data.backgroundColor,
+        globalDrawingPaths: op.data.globalDrawingPaths
+      }
+    })
 
     results.synced.push(op.id)
   } else if (op.operation === 'delete') {

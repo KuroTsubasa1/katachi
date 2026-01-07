@@ -17,6 +17,7 @@ export const boards = pgTable('boards', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   backgroundColor: varchar('background_color', { length: 50 }).default('#f5f5f5'),
+  globalDrawingPaths: jsonb('global_drawing_paths'),
   version: integer('version').default(1).notNull(),
   deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').notNull(),

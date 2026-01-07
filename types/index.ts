@@ -77,6 +77,7 @@ export interface Board {
   connections: Connection[]
   shapes: Shape[]
   backgroundColor: string
+  globalDrawingPaths?: string[]
   createdAt: string
   updatedAt: string
 }
