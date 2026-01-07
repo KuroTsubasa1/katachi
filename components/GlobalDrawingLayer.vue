@@ -1,38 +1,27 @@
 <template>
   <!-- Drawing canvas inside transformed space so strokes move with canvas -->
-  <div
+  <canvas
     v-show="canvasStore.globalDrawingPaths.length > 0 || isDrawingMode"
-    class="global-drawing-layer absolute"
+    ref="canvas"
+    class="absolute top-0 left-0"
+    :width="canvasSize.width"
+    :height="canvasSize.height"
     :style="{
-      pointerEvents: 'none',
-      zIndex: 10000,
-      left: '0',
-      top: '0',
       width: canvasSize.width + 'px',
-      height: canvasSize.height + 'px'
-    }"
-  >
-    <canvas
-      ref="canvas"
-      class="absolute top-0 left-0"
-      :width="canvasSize.width"
-      :height="canvasSize.height"
-      :style="{
-        pointerEvents: isDrawingMode ? 'auto' : 'none',
+      height: canvasSize.height + 'px',
+      zIndex: 10000,
+      pointerEvents: isDrawingMode ? 'auto' : 'none',
         cursor: isDrawingMode ? (
           currentTool === 'pen' ? 'crosshair' :
-          currentTool === 'eraser' ? 'not-allowed' :
+          currentTool === 'eraser' ? 'pointer' :
           currentTool === 'move-stroke' ? 'move' :
+          currentTool === 'hand' ? 'grab' :
           ['rectangle', 'circle', 'line', 'arrow'].includes(currentTool) ? 'crosshair' :
           'default'
         ) : 'default'
       }"
-@mousedown.stop="handleMouseDown"
-      @mousemove.stop="draw"
-      @mouseup.stop="stopDrawing"
-      @mouseleave="stopDrawing"
-    ></canvas>
-  </div>
+    @mousedown.stop="handleMouseDown"
+  ></canvas>
 </template>
 
 <script setup lang="ts">
@@ -54,6 +43,7 @@ const isDrawingMode = computed(() =>
   canvasStore.currentTool.type === 'pen' ||
   canvasStore.currentTool.type === 'eraser' ||
   canvasStore.currentTool.type === 'move-stroke' ||
+  canvasStore.currentTool.type === 'hand' ||
   canvasStore.currentTool.type === 'rectangle' ||
   canvasStore.currentTool.type === 'circle' ||
   canvasStore.currentTool.type === 'line' ||
@@ -68,22 +58,20 @@ const canvasSize = computed(() => ({
 }))
 
 const getCanvasCoords = (e: MouseEvent): { x: number, y: number } => {
-  // Get mouse position relative to the transformed canvas space
+  // Get coordinates in canvas pixel space
   const viewport = canvasStore.viewport
 
-  // Get the outermost canvas container (before the transform)
-  // Structure: canvasContainer > transformed-div > GlobalDrawingLayer > canvas
-  const transformedDiv = canvas.value?.parentElement?.parentElement
-  const canvasContainer = transformedDiv?.parentElement
-  if (!canvasContainer) return { x: 0, y: 0 }
+  // Get the canvas board container (accounts for sidebar offset)
+  const canvasBoard = document.querySelector('.canvas-grid')
+  if (!canvasBoard) return { x: 0, y: 0 }
 
-  const rect = canvasContainer.getBoundingClientRect()
+  const rect = canvasBoard.getBoundingClientRect()
 
-  // Mouse position relative to the outermost container
+  // Mouse position relative to the canvas board (after sidebar)
   const screenX = e.clientX - rect.left
   const screenY = e.clientY - rect.top
 
-  // Convert to canvas coordinates by reversing the viewport transform
+  // Reverse viewport transform to get canvas coordinates
   const canvasX = (screenX - viewport.x) / viewport.scale
   const canvasY = (screenY - viewport.y) / viewport.scale
 
@@ -119,6 +107,22 @@ const startDrawing = (e: MouseEvent) => {
   const canvasCoords = getCanvasCoords(e)
   console.log('Canvas coords:', canvasCoords)
 
+  // Hand tool - don't start drawing, let canvas handle panning
+  if (canvasStore.currentTool.type === 'hand') {
+    return
+  }
+
+  // Eraser tool - click to delete entire strokes
+  if (canvasStore.currentTool.type === 'eraser') {
+    const strokeIndex = findStrokeAtPoint(canvasCoords.x, canvasCoords.y)
+    if (strokeIndex !== null) {
+      console.log('[Eraser] Deleting stroke at index:', strokeIndex)
+      canvasStore.deleteGlobalDrawingPath(strokeIndex)
+      redrawCanvas()
+    }
+    return
+  }
+
   // Move stroke mode - select and drag strokes
   if (canvasStore.currentTool.type === 'move-stroke') {
     const strokeIndex = findStrokeAtPoint(canvasCoords.x, canvasCoords.y)
@@ -127,6 +131,9 @@ const startDrawing = (e: MouseEvent) => {
       isDraggingStroke.value = true
       strokeDragStart.value = canvasCoords
       redrawCanvas()
+
+      // Attach mouseup listener (mousemove already attached via watch)
+      document.addEventListener('mouseup', handleDocumentMouseUp)
     }
     return
   }
@@ -142,6 +149,7 @@ const startDrawing = (e: MouseEvent) => {
       shapeEnd.value = canvasCoords
       isDrawingShape.value = true
       console.log('✓ FIRST CLICK - Shape started at:', canvasCoords, 'isDrawingShape now:', isDrawingShape.value)
+      // Note: Document listeners are always active in draw mode, no need to attach here
     } else {
       // Second click - confirm and save
       console.log('✓ SECOND CLICK DETECTED - isDrawingShape:', isDrawingShape.value)
@@ -149,12 +157,16 @@ const startDrawing = (e: MouseEvent) => {
 
       // Immediately save the shape
       if (shapeStart.value && shapeEnd.value) {
+        // Normalize position and size to handle any drag direction
         const newShape = {
           type: canvasStore.currentTool.type as 'rectangle' | 'circle' | 'line' | 'arrow',
-          position: shapeStart.value,
+          position: {
+            x: Math.min(shapeStart.value.x, shapeEnd.value.x),
+            y: Math.min(shapeStart.value.y, shapeEnd.value.y)
+          },
           size: {
-            width: shapeEnd.value.x - shapeStart.value.x,
-            height: shapeEnd.value.y - shapeStart.value.y
+            width: Math.abs(shapeEnd.value.x - shapeStart.value.x),
+            height: Math.abs(shapeEnd.value.y - shapeStart.value.y)
           },
           color: canvasStore.currentTool.color || '#000000',
           width: canvasStore.currentTool.width || 2,
@@ -183,6 +195,17 @@ const startDrawing = (e: MouseEvent) => {
   // Regular drawing mode
   isDrawing.value = true
   currentPath.value = [canvasCoords]
+
+  // Attach mouseup listener (mousemove is already attached via watch)
+  document.addEventListener('mouseup', handleDocumentMouseUp)
+}
+
+const handleDocumentMouseMove = (e: MouseEvent) => {
+  draw(e)
+}
+
+const handleDocumentMouseUp = (e: MouseEvent) => {
+  stopDrawing()
 }
 
 const findStrokeAtPoint = (x: number, y: number): number | null => {
@@ -202,7 +225,12 @@ const findStrokeAtPoint = (x: number, y: number): number | null => {
 }
 
 const draw = (e: MouseEvent) => {
-  if (!canvas.value) return
+  console.log('[Draw] Called - tool:', canvasStore.currentTool.type, 'isDrawingShape:', isDrawingShape.value, 'isDrawing:', isDrawing.value)
+
+  if (!canvas.value) {
+    console.log('[Draw] No canvas, returning')
+    return
+  }
 
   const canvasCoords = getCanvasCoords(e)
 
@@ -217,10 +245,14 @@ const draw = (e: MouseEvent) => {
   }
 
   // Shape drawing preview - update on mouse move
-  if (isDrawingShape.value && shapeStart.value && ['rectangle', 'circle', 'line', 'arrow'].includes(canvasStore.currentTool.type)) {
-    shapeEnd.value = canvasCoords
-    drawShapePreview()
-    return
+  if (isDrawingShape.value && shapeStart.value) {
+    const isShapeTool = ['rectangle', 'circle', 'line', 'arrow'].includes(canvasStore.currentTool.type)
+    if (isShapeTool) {
+      shapeEnd.value = canvasCoords
+      console.log('[Shape Preview] Updating preview from', shapeStart.value, 'to', shapeEnd.value)
+      drawShapePreview()
+      return
+    }
   }
 
   // Regular drawing
@@ -254,31 +286,43 @@ const draw = (e: MouseEvent) => {
 }
 
 const drawShapePreview = () => {
-  if (!canvas.value || !shapeStart.value || !shapeEnd.value) return
+  if (!canvas.value || !shapeStart.value || !shapeEnd.value) {
+    console.log('[drawShapePreview] Missing:', { canvas: !!canvas.value, start: !!shapeStart.value, end: !!shapeEnd.value })
+    return
+  }
 
+  // Redraw existing content first
   redrawCanvas()
 
   const ctx = canvas.value.getContext('2d')
-  if (!ctx) return
+  if (!ctx) {
+    console.log('[drawShapePreview] No context')
+    return
+  }
 
+  // Draw preview with semi-transparent style
   ctx.strokeStyle = canvasStore.currentTool.color || '#000000'
   ctx.lineWidth = canvasStore.currentTool.width || 2
   ctx.lineCap = 'round'
+  ctx.globalAlpha = 0.7 // Semi-transparent for preview
 
-  const x1 = shapeStart.value.x
-  const y1 = shapeStart.value.y
-  const x2 = shapeEnd.value.x
-  const y2 = shapeEnd.value.y
+  // Normalize coordinates to handle negative dimensions
+  const x1 = Math.min(shapeStart.value.x, shapeEnd.value.x)
+  const y1 = Math.min(shapeStart.value.y, shapeEnd.value.y)
+  const width = Math.abs(shapeEnd.value.x - shapeStart.value.x)
+  const height = Math.abs(shapeEnd.value.y - shapeStart.value.y)
+
+  console.log('[drawShapePreview] Drawing', canvasStore.currentTool.type, 'at', { x1, y1, width, height })
 
   switch (canvasStore.currentTool.type) {
     case 'rectangle':
-      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+      ctx.strokeRect(x1, y1, width, height)
       break
     case 'circle': {
-      const rx = Math.abs(x2 - x1) / 2
-      const ry = Math.abs(y2 - y1) / 2
-      const cx = x1 + (x2 - x1) / 2
-      const cy = y1 + (y2 - y1) / 2
+      const cx = x1 + width / 2
+      const cy = y1 + height / 2
+      const rx = width / 2
+      const ry = height / 2
       ctx.beginPath()
       ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
       ctx.stroke()
@@ -287,32 +331,38 @@ const drawShapePreview = () => {
     case 'line':
     case 'arrow':
       ctx.beginPath()
-      ctx.moveTo(x1, y1)
-      ctx.lineTo(x2, y2)
+      ctx.moveTo(shapeStart.value.x, shapeStart.value.y)
+      ctx.lineTo(shapeEnd.value.x, shapeEnd.value.y)
       ctx.stroke()
 
       if (canvasStore.currentTool.type === 'arrow') {
         // Draw arrowhead
-        const angle = Math.atan2(y2 - y1, x2 - x1)
+        const angle = Math.atan2(shapeEnd.value.y - shapeStart.value.y, shapeEnd.value.x - shapeStart.value.x)
         const headLength = 15
         ctx.beginPath()
-        ctx.moveTo(x2, y2)
+        ctx.moveTo(shapeEnd.value.x, shapeEnd.value.y)
         ctx.lineTo(
-          x2 - headLength * Math.cos(angle - Math.PI / 6),
-          y2 - headLength * Math.sin(angle - Math.PI / 6)
+          shapeEnd.value.x - headLength * Math.cos(angle - Math.PI / 6),
+          shapeEnd.value.y - headLength * Math.sin(angle - Math.PI / 6)
         )
-        ctx.moveTo(x2, y2)
+        ctx.moveTo(shapeEnd.value.x, shapeEnd.value.y)
         ctx.lineTo(
-          x2 - headLength * Math.cos(angle + Math.PI / 6),
-          y2 - headLength * Math.sin(angle + Math.PI / 6)
+          shapeEnd.value.x - headLength * Math.cos(angle + Math.PI / 6),
+          shapeEnd.value.y - headLength * Math.sin(angle + Math.PI / 6)
         )
         ctx.stroke()
       }
       break
   }
+
+  // Reset alpha
+  ctx.globalAlpha = 1.0
 }
 
 const stopDrawing = () => {
+  // Remove mouseup listener (mousemove stays active in draw mode via watch)
+  document.removeEventListener('mouseup', handleDocumentMouseUp)
+
   // Stop moving stroke
   if (isDraggingStroke.value) {
     isDraggingStroke.value = false
@@ -466,6 +516,11 @@ watch(isDrawingMode, (newVal) => {
   nextTick(() => {
     if (newVal) {
       resizeCanvas()
+      // Add document listeners for shape tools (need mousemove without button pressed)
+      document.addEventListener('mousemove', handleDocumentMouseMove)
+    } else {
+      // Remove listeners when exiting draw mode
+      document.removeEventListener('mousemove', handleDocumentMouseMove)
     }
   })
 })

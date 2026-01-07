@@ -60,6 +60,14 @@
       >
         Move
       </button>
+      <button
+        @click.stop="canvasStore.setTool({ type: 'hand' })"
+        :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'hand', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'hand' }"
+        class="px-3 py-2 rounded text-sm font-medium transition"
+        title="Pan Canvas (H)"
+      >
+        ✋
+      </button>
       <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
       <button
         @click.stop="canvasStore.setTool({ type: 'rectangle' })"
@@ -217,14 +225,18 @@ let panStartPos = { x: 0, y: 0 }
 let viewportStartPos = { x: 0, y: 0 }
 
 const handleCanvasMouseDown = (e: MouseEvent) => {
-  // Only pan if clicking directly on canvas background, not on cards or their children
+  // Enable panning with hand tool or on canvas background
   const target = e.target as HTMLElement
   const isCard = target.closest('.note-card')
   const isDrawingLayer = target.closest('.global-drawing-layer')
+  const isHandTool = canvasStore.currentTool.type === 'hand'
 
-  if (!isCard && !isDrawingLayer && (target === canvasContainer.value || target.classList.contains('canvas-grid'))) {
+  // Pan if: hand tool is active OR clicking on canvas background
+  if (isHandTool || (!isCard && !isDrawingLayer && (target === canvasContainer.value || target.classList.contains('canvas-grid')))) {
     canvasStore.setPanning(true)
-    canvasStore.selectCard(null)
+    if (!isHandTool) {
+      canvasStore.selectCard(null)
+    }
     panStartPos = { x: e.clientX, y: e.clientY }
     viewportStartPos = { x: viewport.value.x, y: viewport.value.y }
   }

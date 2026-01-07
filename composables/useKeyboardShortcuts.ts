@@ -134,6 +134,12 @@ export const useKeyboardShortcuts = () => {
         canvasStore.setTool({ type: 'connect' })
         return
       }
+
+      if (e.key === 'h' || e.key === '5') {
+        e.preventDefault()
+        canvasStore.setTool({ type: 'hand' })
+        return
+      }
     }
 
     // Arrow keys - move selected card

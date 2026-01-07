@@ -15,7 +15,8 @@
       width: `${card.size.width}px`,
       height: `${card.size.height}px`,
       backgroundColor: card.color || '#ffffff',
-      zIndex: Math.min(card.zIndex, 9999)
+      zIndex: Math.min(card.zIndex, 9999),
+      pointerEvents: canvasStore.currentTool.type !== 'select' ? 'none' : 'auto'
     }"
     :data-card-id="card.id"
     @mousedown.stop="handleMouseDown"

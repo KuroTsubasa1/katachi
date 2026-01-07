@@ -96,6 +96,10 @@
               <span class="text-sm dark:text-gray-300">Connect tool</span>
               <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-xs font-mono">C or 4</kbd>
             </div>
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
+              <span class="text-sm dark:text-gray-300">Hand/Pan tool</span>
+              <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-xs font-mono">H or 5</kbd>
+            </div>
           </div>
         </div>
 

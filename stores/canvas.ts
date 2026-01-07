@@ -161,6 +161,12 @@ export const useCanvasStore = defineStore('canvas', {
       const cardIndex = this.currentBoard.cards.findIndex(c => c.id === cardId)
       if (cardIndex === -1) return
 
+      // Prevent negative coordinates
+      if (updates.position) {
+        updates.position.x = Math.max(0, updates.position.x)
+        updates.position.y = Math.max(0, updates.position.y)
+      }
+
       const now = new Date().toISOString()
       this.currentBoard.cards[cardIndex] = {
         ...this.currentBoard.cards[cardIndex],

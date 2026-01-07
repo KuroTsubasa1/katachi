@@ -108,7 +108,7 @@ export interface Shape {
 }
 
 export interface Tool {
-  type: 'select' | 'pen' | 'eraser' | 'move-stroke' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'connect' | 'text' | 'image' | 'column'
+  type: 'select' | 'pen' | 'eraser' | 'move-stroke' | 'hand' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'connect' | 'text' | 'image' | 'column'
   color?: string
   width?: number
 }
