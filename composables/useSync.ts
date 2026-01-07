@@ -198,6 +198,9 @@ export const useSync = () => {
     ws.on('card_created', handleCardCreated)
     ws.on('card_updated', handleCardUpdated)
     ws.on('card_deleted', handleCardDeleted)
+    ws.on('shape_created', handleShapeCreated)
+    ws.on('shape_updated', handleShapeUpdated)
+    ws.on('shape_deleted', handleShapeDeleted)
     ws.on('board_updated', handleBoardUpdated)
     ws.on('board_joined', handleBoardJoined)
 
@@ -283,6 +286,58 @@ export const useSync = () => {
     }
 
     canvasStore.currentBoard.updatedAt = new Date().toISOString()
+  }
+
+  const handleShapeCreated = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard || canvasStore.currentBoard.id !== event.data.boardId) {
+      return
+    }
+
+    console.log('[WebSocket] Shape created:', event.shapeId)
+
+    const newShape = {
+      id: event.shapeId,
+      ...event.data
+    }
+
+    if (!canvasStore.currentBoard.shapes) {
+      canvasStore.currentBoard.shapes = []
+    }
+
+    if (!canvasStore.currentBoard.shapes.find(s => s.id === event.shapeId)) {
+      canvasStore.currentBoard.shapes.push(newShape)
+      canvasStore.currentBoard.updatedAt = new Date().toISOString()
+    }
+  }
+
+  const handleShapeUpdated = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard) return
+
+    console.log('[WebSocket] Shape updated:', event.shapeId)
+
+    const shapeIndex = canvasStore.currentBoard.shapes?.findIndex(s => s.id === event.shapeId)
+    if (shapeIndex !== undefined && shapeIndex !== -1) {
+      canvasStore.currentBoard.shapes[shapeIndex] = {
+        ...canvasStore.currentBoard.shapes[shapeIndex],
+        ...event.data,
+        id: event.shapeId
+      }
+      canvasStore.currentBoard.updatedAt = new Date().toISOString()
+    }
+  }
+
+  const handleShapeDeleted = (event: any) => {
+    const canvasStore = useCanvasStore()
+    if (!canvasStore.currentBoard) return
+
+    console.log('[WebSocket] Shape deleted:', event.shapeId)
+
+    if (canvasStore.currentBoard.shapes) {
+      canvasStore.currentBoard.shapes = canvasStore.currentBoard.shapes.filter(s => s.id !== event.shapeId)
+      canvasStore.currentBoard.updatedAt = new Date().toISOString()
+    }
   }
 
   const handleBoardJoined = (event: any) => {

@@ -416,6 +416,66 @@ async function syncShape(userId: string, op: SyncOperation, results: any) {
       createdAt: new Date(),
       updatedAt: new Date()
     })
+
+    // Update board timestamp
+    await db.update(boards)
+      .set({ updatedAt: new Date() })
+      .where(eq(boards.id, op.data.boardId))
+
+    // Broadcast to WebSocket clients
+    await RealtimeService.publishBoardChange(op.data.boardId, {
+      type: 'shape_created',
+      shapeId: op.id,
+      userId,
+      data: op.data
+    })
+
+    results.synced.push(op.id)
+  } else if (op.operation === 'update') {
+    await db.update(shapes)
+      .set({
+        positionX: Math.round(op.data.position.x),
+        positionY: Math.round(op.data.position.y),
+        width: Math.round(op.data.size.width),
+        height: Math.round(op.data.size.height),
+        color: op.data.color,
+        strokeWidth: op.data.width,
+        updatedAt: new Date()
+      })
+      .where(eq(shapes.id, op.id))
+
+    // Update board timestamp
+    await db.update(boards)
+      .set({ updatedAt: new Date() })
+      .where(eq(boards.id, op.data.boardId))
+
+    // Broadcast to WebSocket clients
+    await RealtimeService.publishBoardChange(op.data.boardId, {
+      type: 'shape_updated',
+      shapeId: op.id,
+      userId,
+      data: op.data
+    })
+
+    results.synced.push(op.id)
+  } else if (op.operation === 'delete') {
+    await db.delete(shapes).where(eq(shapes.id, op.id))
+
+    // Update board timestamp
+    const shape = await db.query.shapes.findFirst({ where: eq(shapes.id, op.id) })
+    if (shape) {
+      await db.update(boards)
+        .set({ updatedAt: new Date() })
+        .where(eq(boards.id, shape.boardId))
+
+      // Broadcast to WebSocket clients
+      await RealtimeService.publishBoardChange(shape.boardId, {
+        type: 'shape_deleted',
+        shapeId: op.id,
+        userId
+      })
+    }
+
     results.synced.push(op.id)
   }
 }
