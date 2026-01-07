@@ -162,6 +162,19 @@
         Snap
       </button>
 
+      <!-- Go to Latest Element -->
+      <button
+        class="px-3 py-2 bg-white dark:bg-gray-800 rounded shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2 text-sm"
+        @click="goToLatestElement"
+        title="Go to Latest Element"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        Latest
+      </button>
+
       <!-- Draw/Shapes mode button -->
       <button
         class="px-3 py-2 bg-white dark:bg-gray-800 rounded shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2 text-sm font-medium"
@@ -274,6 +287,42 @@ const zoomIn = () => {
 const zoomOut = () => {
   const newScale = Math.max(0.1, viewport.value.scale - 0.1)
   canvasStore.updateViewport({ scale: newScale })
+}
+
+const goToLatestElement = () => {
+  if (!canvasStore.currentBoard || canvasStore.currentBoard.cards.length === 0) {
+    return
+  }
+
+  // Find the most recently created card
+  const sortedCards = [...canvasStore.currentBoard.cards].sort((a, b) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+
+  const latestCard = sortedCards[0]
+
+  // Get canvas container dimensions (account for sidebar)
+  if (!canvasContainer.value) return
+
+  const containerRect = canvasContainer.value.getBoundingClientRect()
+  const containerWidth = containerRect.width
+  const containerHeight = containerRect.height
+
+  // Calculate viewport position to center the card
+  const cardCenterX = latestCard.position.x + latestCard.size.width / 2
+  const cardCenterY = latestCard.position.y + latestCard.size.height / 2
+
+  // Center the card in the viewport
+  const targetX = containerWidth / 2 - cardCenterX * viewport.value.scale
+  const targetY = containerHeight / 2 - cardCenterY * viewport.value.scale
+
+  canvasStore.updateViewport({
+    x: targetX,
+    y: targetY
+  })
+
+  // Select the card
+  canvasStore.selectCard(latestCard.id)
 }
 
 const toggleDrawMode = () => {
