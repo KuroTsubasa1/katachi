@@ -279,11 +279,26 @@ const draw = (e: MouseEvent) => {
     currentPath.value.push(canvasCoords)
 
     // Check if eraser path intersects any strokes
-    const strokeIndex = findStrokeAtPoint(canvasCoords.x, canvasCoords.y)
-    if (strokeIndex !== null) {
-      console.log('[Eraser] Deleting stroke during drag at index:', strokeIndex)
-      canvasStore.deleteGlobalDrawingPath(strokeIndex)
-      redrawCanvas()
+    // Make a copy of the array length to avoid issues during deletion
+    const pathCount = canvasStore.globalDrawingPaths.length
+    for (let i = pathCount - 1; i >= 0; i--) {
+      try {
+        const pathData = JSON.parse(canvasStore.globalDrawingPaths[i])
+        const points = pathData.points
+
+        // Check if any point in this stroke is near the eraser position
+        for (const point of points) {
+          const distance = Math.sqrt(Math.pow(point.x - canvasCoords.x, 2) + Math.pow(point.y - canvasCoords.y, 2))
+          if (distance < 10) {
+            console.log('[Eraser] Deleting stroke at index:', i)
+            canvasStore.deleteGlobalDrawingPath(i)
+            redrawCanvas()
+            break // Only delete one stroke per mousemove
+          }
+        }
+      } catch (error) {
+        console.error('[Eraser] Error checking stroke:', error)
+      }
     }
     return
   }
