@@ -5,13 +5,22 @@ let transporter: Transporter | null = null
 
 function getTransporter() {
   if (!transporter) {
+    const port = parseInt(process.env.SMTP_PORT || '587')
+    const isPort25 = port === 25
+
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'mail.lasseharm.space',
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      port: port,
       secure: process.env.SMTP_SECURE === 'true',
-      auth: {
+      // Port 25 for internal relay typically doesn't need auth
+      auth: isPort25 ? undefined : {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
+      },
+      // TLS configuration for internal Docker network communication
+      tls: {
+        // Accept self-signed certificates and hostname mismatches for internal mail server
+        rejectUnauthorized: false
       },
       // Add timeout and better error handling
       connectionTimeout: 10000,
