@@ -5,6 +5,9 @@
     @mousedown="handleCanvasMouseDown"
     @mousemove="handleCanvasMouseMove"
     @mouseup="handleCanvasMouseUp"
+    @touchstart="handleTouchStart"
+    @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd"
     @wheel="handleWheel"
   >
     <div
@@ -41,21 +44,21 @@
       <button
         @click.stop="canvasStore.setTool({ type: 'pen' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'pen', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'pen' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
       >
         Pen
       </button>
       <button
         @click.stop="canvasStore.setTool({ type: 'eraser' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'eraser', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'eraser' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
       >
         Eraser
       </button>
       <button
         @click.stop="canvasStore.setTool({ type: 'move-stroke' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'move-stroke', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'move-stroke' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
         title="Move strokes"
       >
         Move
@@ -63,7 +66,7 @@
       <button
         @click.stop="canvasStore.setTool({ type: 'hand' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'hand', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'hand' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
         title="Pan Canvas (H)"
       >
         ✋
@@ -72,7 +75,7 @@
       <button
         @click.stop="canvasStore.setTool({ type: 'rectangle' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'rectangle', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'rectangle' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
         title="Draw rectangle"
       >
         □
@@ -80,7 +83,7 @@
       <button
         @click.stop="canvasStore.setTool({ type: 'circle' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'circle', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'circle' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
         title="Draw circle"
       >
         ○
@@ -88,7 +91,7 @@
       <button
         @click.stop="canvasStore.setTool({ type: 'arrow' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'arrow', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'arrow' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
         title="Draw arrow"
       >
         →
@@ -96,7 +99,7 @@
       <button
         @click.stop="canvasStore.setTool({ type: 'line' })"
         :class="{ 'bg-blue-500 text-white': canvasStore.currentTool.type === 'line', 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200': canvasStore.currentTool.type !== 'line' }"
-        class="px-3 py-2 rounded text-sm font-medium transition"
+        class="px-4 py-3 rounded text-sm font-medium transition"
         title="Draw line"
       >
         —
@@ -106,12 +109,12 @@
         v-if="canvasStore.currentTool.type === 'pen' || canvasStore.currentTool.type === 'rectangle' || canvasStore.currentTool.type === 'circle' || canvasStore.currentTool.type === 'line' || canvasStore.currentTool.type === 'arrow'"
         type="color"
         v-model="canvasStore.currentTool.color"
-        class="w-10 h-10 rounded cursor-pointer"
+        class="w-12 h-12 rounded cursor-pointer"
         @click.stop
       />
       <select
         v-model="canvasStore.currentTool.width"
-        class="px-2 py-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+        class="px-3 py-3 border rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
         @click.stop
       >
         <option :value="1">Thin</option>
@@ -226,6 +229,30 @@ const canvasStore = useCanvasStore()
 const canvasContainer = ref<HTMLElement | null>(null)
 
 const viewport = computed(() => canvasStore.viewport)
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (canvasContainer.value) {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        console.log('[CanvasBoard] ResizeObserver:', { width, height })
+        canvasStore.updateContainerSize(width, height)
+      }
+    })
+    resizeObserver.observe(canvasContainer.value)
+    // Initial update
+    const rect = canvasContainer.value.getBoundingClientRect()
+    console.log('[CanvasBoard] Initial rect:', { width: rect.width, height: rect.height })
+    canvasStore.updateContainerSize(rect.width, rect.height)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  }
+})
 
 const hasAnyDrawings = computed(() => {
   const hasPaths = canvasStore.globalDrawingPaths && canvasStore.globalDrawingPaths.length > 0
@@ -270,6 +297,99 @@ const handleCanvasMouseUp = () => {
   canvasStore.setPanning(false)
 }
 
+// Touch handling variables
+let lastTouchDistance = 0
+let lastTouchCenter = { x: 0, y: 0 }
+let isTouchPanning = false
+let isTouchZooming = false
+
+const handleTouchStart = (e: TouchEvent) => {
+  if (e.touches.length === 1) {
+    const touch = e.touches[0]
+    if (!touch) return
+
+    const target = e.target as HTMLElement
+    const isCard = target.closest('.note-card')
+    const isDrawingLayer = target.closest('.global-drawing-layer')
+    const isHandTool = canvasStore.currentTool.type === 'hand'
+
+    if (isHandTool || (!isCard && !isDrawingLayer && (target === canvasContainer.value || target.classList.contains('canvas-grid')))) {
+      isTouchPanning = true
+      panStartPos = { x: touch.clientX, y: touch.clientY }
+      viewportStartPos = { x: viewport.value.x, y: viewport.value.y }
+    }
+  } else if (e.touches.length === 2) {
+    isTouchZooming = true
+    const touch1 = e.touches[0]
+    const touch2 = e.touches[1]
+    if (!touch1 || !touch2) return
+
+    lastTouchDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY)
+    lastTouchCenter = {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    }
+    viewportStartPos = { x: viewport.value.x, y: viewport.value.y }
+  }
+}
+
+const handleTouchMove = (e: TouchEvent) => {
+  if (isTouchPanning && e.touches.length === 1) {
+    const touch = e.touches[0]
+    if (!touch) return
+
+    e.preventDefault()
+    const dx = touch.clientX - panStartPos.x
+    const dy = touch.clientY - panStartPos.y
+    canvasStore.updateViewport({
+      x: viewportStartPos.x + dx,
+      y: viewportStartPos.y + dy
+    })
+  } else if (isTouchZooming && e.touches.length === 2) {
+    const touch1 = e.touches[0]
+    const touch2 = e.touches[1]
+    if (!touch1 || !touch2) return
+
+    e.preventDefault()
+    const newDistance = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY)
+    const newCenter = {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    }
+
+    const deltaScale = newDistance / lastTouchDistance
+    const newScale = Math.max(0.1, Math.min(3, viewport.value.scale * deltaScale))
+
+    const dx = newCenter.x - lastTouchCenter.x
+    const dy = newCenter.y - lastTouchCenter.y
+
+    canvasStore.updateViewport({
+      scale: newScale,
+      x: viewportStartPos.x + dx,
+      y: viewportStartPos.y + dy
+    })
+
+    lastTouchDistance = newDistance
+    lastTouchCenter = newCenter
+    viewportStartPos = { x: canvasStore.viewport.x, y: canvasStore.viewport.y }
+  }
+}
+
+const handleTouchEnd = (e: TouchEvent) => {
+  if (e.touches.length === 0) {
+    isTouchPanning = false
+    isTouchZooming = false
+  } else if (e.touches.length === 1) {
+    const touch = e.touches[0]
+    if (!touch) return
+
+    isTouchZooming = false
+    isTouchPanning = true
+    panStartPos = { x: touch.clientX, y: touch.clientY }
+    viewportStartPos = { x: viewport.value.x, y: viewport.value.y }
+  }
+}
+
 const handleWheel = (e: WheelEvent) => {
   e.preventDefault()
 
@@ -301,6 +421,8 @@ const goToLatestElement = () => {
 
   const latestCard = sortedCards[0]
 
+  if (!latestCard) return
+
   // Get canvas container dimensions (account for sidebar)
   if (!canvasContainer.value) return
 
@@ -320,6 +442,9 @@ const goToLatestElement = () => {
     x: targetX,
     y: targetY
   })
+
+  // Switch to select tool
+  canvasStore.setTool({ type: 'select' })
 
   // Select the card
   canvasStore.selectCard(latestCard.id)

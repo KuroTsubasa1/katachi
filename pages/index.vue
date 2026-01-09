@@ -1,7 +1,32 @@
 <template>
-  <div class="flex h-full">
+  <div class="flex h-full relative">
+    <!-- Mobile Header -->
+    <div class="md:hidden absolute top-4 left-4 z-30">
+      <button
+        @click="isSidebarOpen = !isSidebarOpen"
+        class="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md text-gray-700 dark:text-gray-200"
+      >
+        <svg v-if="!isSidebarOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div
+      v-if="isSidebarOpen"
+      class="fixed inset-0 bg-black/50 z-40 md:hidden"
+      @click="isSidebarOpen = false"
+    ></div>
+
     <!-- Sidebar -->
-    <aside class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+    <aside
+      class="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-300 ease-in-out absolute md:relative h-full z-50 md:z-0 md:translate-x-0"
+      :class="{ '-translate-x-full': !isSidebarOpen, 'translate-x-0': isSidebarOpen }"
+    >
       <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <Logo :size="28" :showText="true" />
         <div class="flex items-center gap-1">
@@ -130,7 +155,7 @@
         <div class="space-y-1.5">
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('text')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
@@ -138,7 +163,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('richtext')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -146,21 +171,21 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('column')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>
           <span>Column</span>
         </button>
 
-        <label class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 cursor-pointer">
+        <label class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0 cursor-pointer">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
           <span>Image</span>
           <input type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
         </label>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('drawing')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -168,7 +193,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('link')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
@@ -176,7 +201,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('table')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -184,7 +209,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('storyboard')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
@@ -192,7 +217,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('audio')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
@@ -200,7 +225,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('video')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -208,7 +233,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('map')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -216,7 +241,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('markdown')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -224,7 +249,7 @@
         </button>
 
         <button
-          class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2"
+          class="w-full px-3 py-3 md:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0"
           @click="addCard('todo')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
@@ -318,6 +343,7 @@ const router = useRouter()
 const route = useRoute()
 const { openShortcutsHelp } = useKeyboardShortcuts()
 
+const isSidebarOpen = ref(false)
 const showShareDialog = ref(false)
 const showHistoryDialog = ref(false)
 const showRenameDialog = ref(false)
@@ -384,11 +410,6 @@ const handleRestoreVersion = (version: any) => {
   alert('Version restore will be implemented')
 }
 
-const getRandomPosition = () => ({
-  x: Math.random() * 400 + 100,
-  y: Math.random() * 300 + 100
-})
-
 const createNewBoard = () => {
   const boardNumber = canvasStore.boards.length + 1
   canvasStore.createBoard(`Board ${boardNumber}`)
@@ -453,14 +474,33 @@ const importData = async (event: Event) => {
 }
 
 const addCard = (type: string) => {
-  const position = getRandomPosition()
+  let size = { width: 200, height: 150 }
+  
+  // Set default sizes based on type
+  switch (type) {
+    case 'text': size = { width: 200, height: 150 }; break;
+    case 'richtext': size = { width: 400, height: 300 }; break;
+    case 'drawing': size = { width: 400, height: 400 }; break;
+    case 'column': size = { width: 250, height: 500 }; break;
+    case 'storyboard': size = { width: 600, height: 400 }; break;
+    case 'link': size = { width: 350, height: 200 }; break;
+    case 'table': size = { width: 400, height: 300 }; break;
+    case 'sketch': size = { width: 350, height: 350 }; break;
+    case 'audio': size = { width: 350, height: 200 }; break;
+    case 'video': size = { width: 500, height: 350 }; break;
+    case 'map': size = { width: 400, height: 350 }; break;
+    case 'markdown': size = { width: 500, height: 400 }; break;
+    case 'todo': size = { width: 300, height: 250 }; break;
+  }
+
+  const position = canvasStore.getCenterPosition(size)
 
   switch (type) {
     case 'text':
       canvasStore.addCard({
         type: 'text',
         position,
-        size: { width: 200, height: 150 },
+        size,
         content: 'New note',
         color: '#f3f4f6'
       })
@@ -469,23 +509,25 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'richtext',
         position,
-        size: { width: 400, height: 300 },
+        size,
         content: '',
         htmlContent: '<p>Start typing...</p>',
         color: '#ffffff'
       })
       break
     case 'column':
+      // Columns have fixed size in store action but we can pass position
       canvasStore.addColumnCard(position)
       break
     case 'drawing':
+      // Drawings have fixed size in store action
       canvasStore.addDrawingCard(position)
       break
     case 'link':
       canvasStore.addCard({
         type: 'link',
         position,
-        size: { width: 350, height: 200 },
+        size,
         content: '',
         url: '',
         color: '#ffffff'
@@ -495,7 +537,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'table',
         position,
-        size: { width: 400, height: 300 },
+        size,
         content: '',
         tableData: {
           rows: 3,
@@ -516,7 +558,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'sketch',
         position,
-        size: { width: 350, height: 350 },
+        size,
         content: '',
         drawingData: { paths: [], color: '#000000', width: 2 },
         color: '#ffffff'
@@ -526,7 +568,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'audio',
         position,
-        size: { width: 350, height: 200 },
+        size,
         content: '',
         audioUrl: '',
         color: '#faf5ff'
@@ -536,7 +578,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'video',
         position,
-        size: { width: 500, height: 350 },
+        size,
         content: '',
         videoUrl: '',
         color: '#eff6ff'
@@ -546,7 +588,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'map',
         position,
-        size: { width: 400, height: 350 },
+        size,
         content: '',
         mapLocation: '',
         color: '#f0fdf4'
@@ -556,7 +598,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'markdown',
         position,
-        size: { width: 500, height: 400 },
+        size,
         content: '',
         markdown: '# Heading\n\nStart writing markdown...',
         color: '#ffffff'
@@ -566,7 +608,7 @@ const addCard = (type: string) => {
       canvasStore.addCard({
         type: 'todo',
         position,
-        size: { width: 300, height: 250 },
+        size,
         content: '',
         todoData: {
           title: 'Todo List',
@@ -604,9 +646,11 @@ const handleImageUpload = async (event: Event) => {
         height = height * ratio
       }
 
+      const position = canvasStore.getCenterPosition({ width, height })
+
       console.log('[Image] Creating card with imageUrl length:', imageUrl.length)
       canvasStore.addImageCard(
-        getRandomPosition(),
+        position,
         imageUrl,
         { width, height }
       )

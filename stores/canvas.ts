@@ -17,6 +17,10 @@ export const useCanvasStore = defineStore('canvas', {
       y: 0,
       scale: 1
     } as ViewPort,
+    containerSize: {
+      width: 0,
+      height: 0
+    },
     selectedCardId: null as string | null,
     isDragging: false,
     isPanning: false,
@@ -106,14 +110,15 @@ export const useCanvasStore = defineStore('canvas', {
         return
       }
 
-      const boardName = this.boards[boardIndex].name
+      const boardName = this.boards[boardIndex]?.name || 'Unknown Board'
 
       // Remove from local boards array
       this.boards.splice(boardIndex, 1)
 
       // If deleted board was current, switch to another board
       if (this.currentBoard?.id === boardId) {
-        this.currentBoard = this.boards.length > 0 ? this.boards[0] : null
+        this.currentBoard = (this.boards.length > 0 ? this.boards[0] : null) as Board | null
+        this.selectedCardId = null
       }
 
       // Save to localStorage
@@ -168,17 +173,28 @@ export const useCanvasStore = defineStore('canvas', {
       }
 
       const now = new Date().toISOString()
-      this.currentBoard.cards[cardIndex] = {
-        ...this.currentBoard.cards[cardIndex],
+      const currentCard = this.currentBoard.cards[cardIndex]
+      if (!currentCard) return
+
+      const updatedCard: NoteCard = {
+        ...currentCard,
         ...updates,
+        id: currentCard.id, // Ensure ID is preserved
+        type: updates.type || currentCard.type, // Ensure Type is preserved
+        position: updates.position || currentCard.position, // Ensure Position is preserved
+        size: updates.size || currentCard.size, // Ensure Size is preserved
+        content: updates.content !== undefined ? updates.content : currentCard.content, // Ensure Content is preserved
+        zIndex: updates.zIndex !== undefined ? updates.zIndex : currentCard.zIndex, // Ensure ZIndex is preserved
+        createdAt: currentCard.createdAt, // Ensure CreatedAt is preserved
         updatedAt: now
       }
+      this.currentBoard.cards[cardIndex] = updatedCard
       this.currentBoard.updatedAt = now
 
       // Sync to server
       if (typeof window !== 'undefined') {
         const { queueSync } = useSync()
-        queueSync('card', 'update', { ...this.currentBoard.cards[cardIndex], boardId: this.currentBoard.id })
+        queueSync('card', 'update', { ...updatedCard, boardId: this.currentBoard.id })
       }
     },
 
@@ -222,6 +238,35 @@ export const useCanvasStore = defineStore('canvas', {
 
     updateViewport(updates: Partial<ViewPort>) {
       this.viewport = { ...this.viewport, ...updates }
+    },
+
+    updateContainerSize(width: number, height: number) {
+      this.containerSize = { width, height }
+    },
+
+    getCenterPosition(cardSize: { width: number, height: number } = { width: 0, height: 0 }) {
+      // Use container size if available, otherwise fallback to window dimensions or defaults
+      const containerWidth = this.containerSize.width || (typeof window !== 'undefined' ? window.innerWidth : 1000)
+      const containerHeight = this.containerSize.height || (typeof window !== 'undefined' ? window.innerHeight : 800)
+
+      console.log('[CanvasStore] getCenterPosition:', {
+        container: { width: containerWidth, height: containerHeight },
+        viewport: this.viewport,
+        cardSize
+      })
+
+      // Calculate the center of the viewport in world coordinates
+      // WorldPoint = (ScreenPoint - ViewportOffset) / Scale
+      const centerX = (containerWidth / 2 - this.viewport.x) / this.viewport.scale
+      const centerY = (containerHeight / 2 - this.viewport.y) / this.viewport.scale
+
+      const pos = {
+        x: centerX - cardSize.width / 2,
+        y: centerY - cardSize.height / 2
+      }
+      
+      console.log('[CanvasStore] Calculated position:', pos)
+      return pos
     },
 
     setDragging(isDragging: boolean) {
@@ -336,7 +381,7 @@ export const useCanvasStore = defineStore('canvas', {
 
       // Update both the column and the card
       const cardIndex = this.currentBoard.cards.findIndex(c => c.id === cardId)
-      if (cardIndex !== -1) {
+      if (cardIndex !== -1 && this.currentBoard.cards[cardIndex]) {
         this.currentBoard.cards[cardIndex].position = { x: -10000, y: -10000 }
         this.currentBoard.cards[cardIndex].updatedAt = now
       }
@@ -351,7 +396,7 @@ export const useCanvasStore = defineStore('canvas', {
           cardPosition: this.currentBoard.cards[cardIndex]?.position
         })
         queueSync('card', 'update', { ...column, boardId: this.currentBoard.id })
-        if (cardIndex !== -1) {
+        if (cardIndex !== -1 && this.currentBoard.cards[cardIndex]) {
           queueSync('card', 'update', { ...this.currentBoard.cards[cardIndex], boardId: this.currentBoard.id })
         }
       }

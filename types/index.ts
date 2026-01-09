@@ -44,7 +44,7 @@ export interface StoryboardData {
 
 export interface NoteCard {
   id: string
-  type: 'text' | 'richtext' | 'image' | 'column' | 'drawing' | 'audio' | 'video' | 'map' | 'link' | 'table' | 'todo' | 'markdown' | 'storyboard'
+  type: 'text' | 'richtext' | 'image' | 'column' | 'drawing' | 'audio' | 'video' | 'map' | 'link' | 'table' | 'todo' | 'markdown' | 'storyboard' | 'sketch'
   position: Position
   size: Size
   content: string

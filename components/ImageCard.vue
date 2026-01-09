@@ -5,6 +5,7 @@
       :src="imageUrl"
       class="w-full h-full object-contain"
       draggable="false"
+      loading="lazy"
     />
     <div v-else class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
       <div class="text-center">

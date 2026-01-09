@@ -20,13 +20,14 @@
     }"
     :data-card-id="card.id"
     @mousedown.stop="handleMouseDown"
+    @touchstart.stop="handleTouchStart"
   >
     <div class="h-full flex flex-col overflow-hidden">
       <!-- Simple Text Card -->
       <div v-if="card.type === 'text'" class="p-4 h-full flex flex-col">
         <textarea
           v-model="localContent"
-          class="flex-1 w-full resize-none border-none outline-none bg-transparent text-gray-800 dark:text-gray-200"
+          class="flex-1 w-full resize-none border-none outline-none bg-transparent text-gray-800 dark:text-gray-200 text-base"
           :class="{ 'cursor-move': !isSelected, 'pointer-events-none': !isSelected }"
           :readonly="!isSelected"
           @input="updateContent"
@@ -169,8 +170,9 @@
     <!-- Resize handle -->
     <div
       v-if="isSelected"
-      class="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize rounded-tl"
+      class="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-se-resize rounded-tl z-50 touch-none"
       @mousedown.stop="handleResizeStart"
+      @touchstart.stop="handleResizeTouchStart"
     />
   </div>
 </template>
@@ -319,6 +321,89 @@ const handleDragEnd = () => {
   document.removeEventListener('mouseup', handleDragEnd)
 }
 
+const handleTouchStart = (e: TouchEvent) => {
+  if (e.touches.length !== 1) return
+  const touch = e.touches[0]
+  if (!touch) return
+
+  const target = e.target as HTMLElement
+
+  if (canvasStore.currentTool.type === 'connect') {
+    return
+  }
+
+  if (props.card.type === 'drawing' && isSelected.value) {
+    return
+  }
+
+  canvasStore.selectCard(props.card.id)
+  canvasStore.setDragging(true)
+  canvasStore.setDraggingCard(props.card.id)
+  isDragging = true
+  dragStartPos = { x: touch.clientX, y: touch.clientY }
+  cardStartPos = { ...props.card.position }
+
+  document.addEventListener('touchmove', handleTouchDrag, { passive: false })
+  document.addEventListener('touchend', handleTouchDragEnd)
+}
+
+const handleTouchDrag = (e: TouchEvent) => {
+  if (!isDragging) return
+  const touch = e.touches[0]
+  if (!touch) return
+
+  e.preventDefault()
+
+  const elements = document.elementsFromPoint(touch.clientX, touch.clientY)
+  const columnDropZone = elements.find(el => el.classList.contains('column-drop-zone'))
+
+  if (columnDropZone) {
+    const columnCardElement = columnDropZone.closest('.note-card')
+    if (columnCardElement) {
+      const columnId = columnCardElement.getAttribute('data-card-id')
+      if (columnId && columnId !== props.card.id) {
+        canvasStore.setDropTargetColumn(columnId)
+      }
+    }
+  } else {
+    if (canvasStore.dropTargetColumnId) {
+      canvasStore.setDropTargetColumn(null)
+    }
+  }
+
+  const scale = canvasStore.viewport.scale
+  const dx = (touch.clientX - dragStartPos.x) / scale
+  const dy = (touch.clientY - dragStartPos.y) / scale
+
+  const newPosition = {
+    x: cardStartPos.x + dx,
+    y: cardStartPos.y + dy
+  }
+
+  const snappedPosition = canvasStore.snapPositionToGrid(newPosition)
+
+  canvasStore.updateCard(props.card.id, {
+    position: snappedPosition
+  })
+}
+
+const handleTouchDragEnd = () => {
+  if (!isDragging) return
+
+  isDragging = false
+  canvasStore.setDragging(false)
+
+  if (canvasStore.dropTargetColumnId && props.card.type !== 'column') {
+    canvasStore.moveCardToColumn(props.card.id, canvasStore.dropTargetColumnId)
+  }
+
+  canvasStore.setDraggingCard(null)
+  canvasStore.setDropTargetColumn(null)
+
+  document.removeEventListener('touchmove', handleTouchDrag)
+  document.removeEventListener('touchend', handleTouchDragEnd)
+}
+
 const handleResizeStart = (e: MouseEvent) => {
   e.preventDefault()
   isResizing = true
@@ -358,6 +443,56 @@ const handleResizeEnd = () => {
   isResizing = false
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', handleResizeEnd)
+}
+
+const handleResizeTouchStart = (e: TouchEvent) => {
+  if (e.touches.length !== 1) return
+  const touch = e.touches[0]
+  if (!touch) return
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  isResizing = true
+  resizeStartPos = { x: touch.clientX, y: touch.clientY }
+  sizeStart = { ...props.card.size }
+
+  document.addEventListener('touchmove', handleResizeTouch, { passive: false })
+  document.addEventListener('touchend', handleResizeTouchEnd)
+}
+
+const handleResizeTouch = (e: TouchEvent) => {
+  if (!isResizing) return
+  const touch = e.touches[0]
+  if (!touch) return
+
+  e.preventDefault()
+
+  const scale = canvasStore.viewport.scale
+  const dx = (touch.clientX - resizeStartPos.x) / scale
+  const dy = (touch.clientY - resizeStartPos.y) / scale
+
+  let newWidth = Math.max(150, sizeStart.width + dx)
+  let newHeight = Math.max(100, sizeStart.height + dy)
+
+  if (canvasStore.snapToGrid) {
+    const gridSize = canvasStore.gridSize
+    newWidth = Math.round(newWidth / gridSize) * gridSize
+    newHeight = Math.round(newHeight / gridSize) * gridSize
+  }
+
+  canvasStore.updateCard(props.card.id, {
+    size: {
+      width: newWidth,
+      height: newHeight
+    }
+  })
+}
+
+const handleResizeTouchEnd = () => {
+  isResizing = false
+  document.removeEventListener('touchmove', handleResizeTouch)
+  document.removeEventListener('touchend', handleResizeTouchEnd)
 }
 
 const updateContent = () => {
