@@ -5,18 +5,28 @@ let transporter: Transporter | null = null
 
 function getTransporter() {
   if (!transporter) {
-    const port = parseInt(process.env.SMTP_PORT || '587')
-    const isPort25 = port === 25
+    let port = parseInt(process.env.SMTP_PORT || '587')
+    const isDev = process.env.NODE_ENV === 'development'
+
+    // If we are in development and the port is 25, we switch to 587 to avoid Spamhaus blocking
+    if (isDev && port === 25) {
+      console.warn('Switching SMTP to port 587 for development environment to avoid Spamhaus blocking')
+      port = 587
+    }
+
+    const hasAuth = process.env.SMTP_USER && process.env.SMTP_PASS
 
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'mail.lasseharm.space',
       port: port,
       secure: process.env.SMTP_SECURE === 'true',
-      // Port 25 for internal relay typically doesn't need auth
-      auth: isPort25 ? undefined : {
+      // Use auth if credentials are provided.
+      // In production (port 25), we typically use relay without auth (unless auth is provided explicitly).
+      // In development (port 587), we MUST use auth.
+      auth: hasAuth ? {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
-      },
+      } : undefined,
       // TLS configuration for internal Docker network communication
       tls: {
         // Accept self-signed certificates and hostname mismatches for internal mail server
