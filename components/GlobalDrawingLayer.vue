@@ -478,6 +478,11 @@ const drawShapePreview = () => {
     }
     case 'line':
     case 'arrow':
+      // For arrows, use butt cap to prevent double arrowhead
+      if (canvasStore.currentTool.type === 'arrow') {
+        ctx.lineCap = 'butt'
+      }
+
       ctx.beginPath()
       ctx.moveTo(shapeStart.value.x, shapeStart.value.y)
       ctx.lineTo(shapeEnd.value.x, shapeEnd.value.y)
@@ -499,6 +504,7 @@ const drawShapePreview = () => {
           shapeEnd.value.y - headLength * Math.sin(angle + Math.PI / 6)
         )
         ctx.stroke()
+        ctx.lineCap = 'round' // Restore round cap for other shapes
       }
       break
   }
@@ -605,6 +611,11 @@ const redrawCanvas = () => {
         }
         case 'line':
         case 'arrow': {
+          // For arrows, use butt cap to prevent double arrowhead
+          if (shape.type === 'arrow') {
+            ctx.lineCap = 'butt'
+          }
+
           ctx.beginPath()
           ctx.moveTo(shape.position.x, shape.position.y)
           ctx.lineTo(shape.position.x + shape.size.width, shape.position.y + shape.size.height)
@@ -631,6 +642,7 @@ const redrawCanvas = () => {
               y2 - headLength * Math.sin(angle + Math.PI / 6)
             )
             ctx.stroke()
+            ctx.lineCap = 'round' // Restore round cap for other shapes
           }
           break
         }
