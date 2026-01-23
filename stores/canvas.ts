@@ -245,28 +245,58 @@ export const useCanvasStore = defineStore('canvas', {
     },
 
     getCenterPosition(cardSize: { width: number, height: number } = { width: 0, height: 0 }) {
-      // Use container size if available, otherwise fallback to window dimensions or defaults
-      const containerWidth = this.containerSize.width || (typeof window !== 'undefined' ? window.innerWidth : 1000)
-      const containerHeight = this.containerSize.height || (typeof window !== 'undefined' ? window.innerHeight : 800)
+      // Get the actual viewport dimensions
+      let viewportWidth = this.containerSize.width
+      let viewportHeight = this.containerSize.height
 
-      console.log('[CanvasStore] getCenterPosition:', {
-        container: { width: containerWidth, height: containerHeight },
-        viewport: this.viewport,
-        cardSize
-      })
-
-      // Calculate the center of the viewport in world coordinates
-      // WorldPoint = (ScreenPoint - ViewportOffset) / Scale
-      const centerX = (containerWidth / 2 - this.viewport.x) / this.viewport.scale
-      const centerY = (containerHeight / 2 - this.viewport.y) / this.viewport.scale
-
-      const pos = {
-        x: centerX - cardSize.width / 2,
-        y: centerY - cardSize.height / 2
+      // If containerSize hasn't been set yet, get it from the DOM or window
+      if (!viewportWidth || !viewportHeight) {
+        if (typeof window !== 'undefined') {
+          const canvasElement = document.querySelector('.canvas-grid')
+          if (canvasElement) {
+            const rect = canvasElement.getBoundingClientRect()
+            viewportWidth = rect.width
+            viewportHeight = rect.height
+          } else {
+            // Account for sidebar (256px on desktop)
+            viewportWidth = window.innerWidth - 256
+            viewportHeight = window.innerHeight
+          }
+        } else {
+          viewportWidth = 1000
+          viewportHeight = 800
+        }
       }
-      
-      console.log('[CanvasStore] Calculated position:', pos)
-      return pos
+
+      // CSS transform is: translate(viewport.x, viewport.y) scale(viewport.scale)
+      // This means: first scale, then translate (right-to-left in matrix multiplication)
+      // Screen coords = (World coords * scale) + translate
+      // Therefore: World coords = (Screen coords - translate) / scale
+
+      // Center of the visible viewport in screen coordinates
+      const screenCenterX = viewportWidth / 2
+      const screenCenterY = viewportHeight / 2
+
+      // Convert to world coordinates
+      const worldCenterX = (screenCenterX - this.viewport.x) / this.viewport.scale
+      const worldCenterY = (screenCenterY - this.viewport.y) / this.viewport.scale
+
+      // Position card so its center is at the world center
+      const position = {
+        x: worldCenterX - cardSize.width / 2,
+        y: worldCenterY - cardSize.height / 2
+      }
+
+      console.log('🎯 [GET CENTER] Calculating center position:')
+      console.log('🎯 [GET CENTER] - Viewport:', { width: viewportWidth, height: viewportHeight })
+      console.log('🎯 [GET CENTER] - Pan:', { x: this.viewport.x, y: this.viewport.y })
+      console.log('🎯 [GET CENTER] - Scale:', this.viewport.scale)
+      console.log('🎯 [GET CENTER] - Card size:', cardSize)
+      console.log('🎯 [GET CENTER] - Screen center:', { x: screenCenterX, y: screenCenterY })
+      console.log('🎯 [GET CENTER] - World center:', { x: worldCenterX, y: worldCenterY })
+      console.log('🎯 [GET CENTER] - Final position:', position)
+
+      return position
     },
 
     setDragging(isDragging: boolean) {

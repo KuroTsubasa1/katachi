@@ -72,10 +72,9 @@ export const useKeyboardShortcuts = () => {
     // Paste card
     if (hasModifier && e.key === 'v') {
       e.preventDefault()
-      const viewport = canvasStore.viewport
-      const centerX = (window.innerWidth / 2 - viewport.x) / viewport.scale
-      const centerY = (window.innerHeight / 2 - viewport.y) / viewport.scale
-      canvasStore.pasteCard({ x: centerX, y: centerY })
+      // Use getCenterPosition to ensure consistency with card creation
+      const position = canvasStore.getCenterPosition({ width: 0, height: 0 })
+      canvasStore.pasteCard(position)
       return
     }
 

@@ -474,8 +474,12 @@ const importData = async (event: Event) => {
 }
 
 const addCard = (type: string) => {
+  console.log('='.repeat(80))
+  console.log('🎯🎯🎯 ADDING NEW CARD - TYPE:', type)
+  console.log('='.repeat(80))
+
   let size = { width: 200, height: 150 }
-  
+
   // Set default sizes based on type
   switch (type) {
     case 'text': size = { width: 200, height: 150 }; break;
@@ -493,7 +497,17 @@ const addCard = (type: string) => {
     case 'todo': size = { width: 300, height: 250 }; break;
   }
 
+  console.log('🎯 [ADD CARD] Card size:', size)
+  console.log('🎯 [ADD CARD] Viewport state:', {
+    x: canvasStore.viewport.x,
+    y: canvasStore.viewport.y,
+    scale: canvasStore.viewport.scale,
+    containerSize: canvasStore.containerSize
+  })
+
   const position = canvasStore.getCenterPosition(size)
+
+  console.log('🎯 [ADD CARD] Calculated position:', position)
 
   switch (type) {
     case 'text':
