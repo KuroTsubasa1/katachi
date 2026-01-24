@@ -477,36 +477,42 @@ const drawShapePreview = () => {
       break
     }
     case 'line':
-    case 'arrow':
-      // For arrows, use butt cap to prevent double arrowhead
-      if (canvasStore.currentTool.type === 'arrow') {
-        ctx.lineCap = 'butt'
-      }
-
       ctx.beginPath()
       ctx.moveTo(shapeStart.value.x, shapeStart.value.y)
       ctx.lineTo(shapeEnd.value.x, shapeEnd.value.y)
       ctx.stroke()
-
-      if (canvasStore.currentTool.type === 'arrow') {
-        // Draw arrowhead
-        const angle = Math.atan2(shapeEnd.value.y - shapeStart.value.y, shapeEnd.value.x - shapeStart.value.x)
-        const headLength = 15
-        ctx.beginPath()
-        ctx.moveTo(shapeEnd.value.x, shapeEnd.value.y)
-        ctx.lineTo(
-          shapeEnd.value.x - headLength * Math.cos(angle - Math.PI / 6),
-          shapeEnd.value.y - headLength * Math.sin(angle - Math.PI / 6)
-        )
-        ctx.moveTo(shapeEnd.value.x, shapeEnd.value.y)
-        ctx.lineTo(
-          shapeEnd.value.x - headLength * Math.cos(angle + Math.PI / 6),
-          shapeEnd.value.y - headLength * Math.sin(angle + Math.PI / 6)
-        )
-        ctx.stroke()
-        ctx.lineCap = 'round' // Restore round cap for other shapes
-      }
       break
+    case 'arrow': {
+      // Calculate angle for arrow
+      const angle = Math.atan2(shapeEnd.value.y - shapeStart.value.y, shapeEnd.value.x - shapeStart.value.x)
+      const headLength = 15
+
+      // Shorten the line to make room for arrowhead
+      const lineEndX = shapeEnd.value.x - (headLength * 0.5) * Math.cos(angle)
+      const lineEndY = shapeEnd.value.y - (headLength * 0.5) * Math.sin(angle)
+
+      // Draw the main line (shortened)
+      ctx.beginPath()
+      ctx.moveTo(shapeStart.value.x, shapeStart.value.y)
+      ctx.lineTo(lineEndX, lineEndY)
+      ctx.stroke()
+
+      // Draw arrowhead
+      ctx.beginPath()
+      ctx.moveTo(shapeEnd.value.x, shapeEnd.value.y)
+      ctx.lineTo(
+        shapeEnd.value.x - headLength * Math.cos(angle - Math.PI / 6),
+        shapeEnd.value.y - headLength * Math.sin(angle - Math.PI / 6)
+      )
+      ctx.lineTo(
+        shapeEnd.value.x - headLength * Math.cos(angle + Math.PI / 6),
+        shapeEnd.value.y - headLength * Math.sin(angle + Math.PI / 6)
+      )
+      ctx.closePath()
+      ctx.fillStyle = ctx.strokeStyle
+      ctx.fill()
+      break
+    }
   }
 
   // Reset alpha
@@ -610,40 +616,43 @@ const redrawCanvas = () => {
           break
         }
         case 'line':
-        case 'arrow': {
-          // For arrows, use butt cap to prevent double arrowhead
-          if (shape.type === 'arrow') {
-            ctx.lineCap = 'butt'
-          }
-
           ctx.beginPath()
           ctx.moveTo(shape.position.x, shape.position.y)
           ctx.lineTo(shape.position.x + shape.size.width, shape.position.y + shape.size.height)
           ctx.stroke()
+          break
+        case 'arrow': {
+          const x1 = shape.position.x
+          const y1 = shape.position.y
+          const x2 = shape.position.x + shape.size.width
+          const y2 = shape.position.y + shape.size.height
+          const angle = Math.atan2(y2 - y1, x2 - x1)
+          const headLength = 15
 
-          if (shape.type === 'arrow') {
-            // Draw arrowhead
-            const x1 = shape.position.x
-            const y1 = shape.position.y
-            const x2 = shape.position.x + shape.size.width
-            const y2 = shape.position.y + shape.size.height
-            const angle = Math.atan2(y2 - y1, x2 - x1)
-            const headLength = 15
+          // Shorten the line to make room for arrowhead
+          const lineEndX = x2 - (headLength * 0.5) * Math.cos(angle)
+          const lineEndY = y2 - (headLength * 0.5) * Math.sin(angle)
 
-            ctx.beginPath()
-            ctx.moveTo(x2, y2)
-            ctx.lineTo(
-              x2 - headLength * Math.cos(angle - Math.PI / 6),
-              y2 - headLength * Math.sin(angle - Math.PI / 6)
-            )
-            ctx.moveTo(x2, y2)
-            ctx.lineTo(
-              x2 - headLength * Math.cos(angle + Math.PI / 6),
-              y2 - headLength * Math.sin(angle + Math.PI / 6)
-            )
-            ctx.stroke()
-            ctx.lineCap = 'round' // Restore round cap for other shapes
-          }
+          // Draw the main line (shortened)
+          ctx.beginPath()
+          ctx.moveTo(x1, y1)
+          ctx.lineTo(lineEndX, lineEndY)
+          ctx.stroke()
+
+          // Draw arrowhead as filled triangle
+          ctx.beginPath()
+          ctx.moveTo(x2, y2)
+          ctx.lineTo(
+            x2 - headLength * Math.cos(angle - Math.PI / 6),
+            y2 - headLength * Math.sin(angle - Math.PI / 6)
+          )
+          ctx.lineTo(
+            x2 - headLength * Math.cos(angle + Math.PI / 6),
+            y2 - headLength * Math.sin(angle + Math.PI / 6)
+          )
+          ctx.closePath()
+          ctx.fillStyle = shape.color
+          ctx.fill()
           break
         }
       }
