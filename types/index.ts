@@ -42,9 +42,16 @@ export interface StoryboardData {
   frames: StoryboardFrame[]
 }
 
+export interface MindMapData {
+  parentId?: string  // ID of parent node (null for root)
+  childIds: string[] // IDs of child nodes
+  isCollapsed?: boolean
+  level: number // 0 for root, 1 for first level, etc.
+}
+
 export interface NoteCard {
   id: string
-  type: 'text' | 'richtext' | 'image' | 'column' | 'drawing' | 'audio' | 'video' | 'map' | 'link' | 'table' | 'todo' | 'markdown' | 'storyboard' | 'sketch'
+  type: 'text' | 'richtext' | 'image' | 'column' | 'drawing' | 'audio' | 'video' | 'map' | 'link' | 'table' | 'todo' | 'markdown' | 'storyboard' | 'sketch' | 'mindmap'
   position: Position
   size: Size
   content: string
@@ -56,6 +63,7 @@ export interface NoteCard {
   tableData?: TableData
   todoData?: TodoData
   storyboardData?: StoryboardData
+  mindMapData?: MindMapData
   markdown?: string
   url?: string
   audioUrl?: string

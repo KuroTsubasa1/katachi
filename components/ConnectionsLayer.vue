@@ -126,16 +126,29 @@ const getConnectionPath = (connection: Connection): string => {
 
   if (!fromCard || !toCard) return ''
 
-  // Get center points of cards
-  const x1 = fromCard.position.x + fromCard.size.width / 2
-  const y1 = fromCard.position.y + fromCard.size.height / 2
-  const x2 = toCard.position.x + toCard.size.width / 2
-  const y2 = toCard.position.y + toCard.size.height / 2
+  let x1, y1, x2, y2
+
+  // For mindmap nodes, connect from right side of parent to left side of child
+  if (fromCard.type === 'mindmap' && toCard.type === 'mindmap') {
+    // Right edge of parent (right side, vertical center)
+    x1 = fromCard.position.x + fromCard.size.width
+    y1 = fromCard.position.y + fromCard.size.height / 2
+
+    // Left edge of child (left side, vertical center)
+    x2 = toCard.position.x
+    y2 = toCard.position.y + toCard.size.height / 2
+  } else {
+    // Default: center points for non-mindmap connections
+    x1 = fromCard.position.x + fromCard.size.width / 2
+    y1 = fromCard.position.y + fromCard.size.height / 2
+    x2 = toCard.position.x + toCard.size.width / 2
+    y2 = toCard.position.y + toCard.size.height / 2
+  }
 
   if (connection.style === 'curved') {
     // Bezier curve for smooth connections
     const controlX = (x1 + x2) / 2
-    const controlY = Math.min(y1, y2) - 50
+    const controlY = (y1 + y2) / 2
     return `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`
   } else {
     // Straight line

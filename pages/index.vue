@@ -255,6 +255,14 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
           <span>Todo List</span>
         </button>
+
+        <button
+          class="w-full px-3 py-3 md:py-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 text-gray-700 dark:text-gray-200 rounded hover:from-blue-200 hover:to-purple-200 dark:hover:from-blue-800 dark:hover:to-purple-800 transition text-sm flex items-center gap-2 min-h-[48px] md:min-h-0 font-medium"
+          @click="addCard('mindmap')"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+          <span>Mind Map</span>
+        </button>
         </div>
       </div>
 
@@ -630,6 +638,12 @@ const addCard = (type: string) => {
         },
         color: '#f0f9ff'
       })
+      break
+    case 'mindmap':
+      // Create root mind map node
+      const rootNode = canvasStore.addMindMapNode(position)
+      // Auto-select the node for immediate editing
+      canvasStore.selectCard(rootNode.id)
       break
   }
 }

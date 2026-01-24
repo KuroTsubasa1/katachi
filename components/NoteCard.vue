@@ -131,6 +131,18 @@
         :isSelected="isSelected"
         @update:todoData="updateTodoData"
       />
+
+      <!-- Mind Map Card -->
+      <MindMapCard
+        v-else-if="card.type === 'mindmap'"
+        :cardId="card.id"
+        :content="card.content"
+        :mindMapData="card.mindMapData"
+        :editable="isSelected"
+        @update:content="updateMindMapContent"
+        @addChild="handleAddChild"
+        @addSibling="handleAddSibling"
+      />
     </div>
 
     <!-- Card Controls (when selected) -->
@@ -192,6 +204,7 @@ import VideoCard from './VideoCard.vue'
 import MapCard from './MapCard.vue'
 import MarkdownCard from './MarkdownCard.vue'
 import TodoListCard from './TodoListCard.vue'
+import MindMapCard from './MindMapCard.vue'
 
 const props = defineProps<{
   card: NoteCardType
@@ -262,6 +275,28 @@ const handleMouseDown = (e: MouseEvent) => {
   document.addEventListener('mouseup', handleDragEnd)
 }
 
+const moveChildrenRecursively = (parentId: string, dx: number, dy: number) => {
+  if (!canvasStore.currentBoard) return
+
+  const parent = canvasStore.currentBoard.cards.find(c => c.id === parentId)
+  if (!parent || parent.type !== 'mindmap' || !parent.mindMapData) return
+
+  // Move all direct children
+  parent.mindMapData.childIds.forEach(childId => {
+    const child = canvasStore.currentBoard?.cards.find(c => c.id === childId)
+    if (child) {
+      const newChildPosition = {
+        x: child.position.x + dx,
+        y: child.position.y + dy
+      }
+      canvasStore.updateCard(childId, { position: newChildPosition })
+
+      // Recursively move grandchildren
+      moveChildrenRecursively(childId, dx, dy)
+    }
+  })
+}
+
 const handleDrag = (e: MouseEvent) => {
   if (!isDragging) return
 
@@ -300,6 +335,16 @@ const handleDrag = (e: MouseEvent) => {
   canvasStore.updateCard(props.card.id, {
     position: snappedPosition
   })
+
+  // If this is a mindmap node, move all children with it
+  if (props.card.type === 'mindmap' && props.card.mindMapData) {
+    const actualDx = snappedPosition.x - cardStartPos.x
+    const actualDy = snappedPosition.y - cardStartPos.y
+    moveChildrenRecursively(props.card.id, actualDx, actualDy)
+    // Update the starting position to prevent compounding movement
+    cardStartPos = snappedPosition
+    dragStartPos = { x: e.clientX, y: e.clientY }
+  }
 }
 
 const handleDragEnd = () => {
@@ -584,6 +629,28 @@ const updateTodoData = (todoData: any) => {
   canvasStore.updateCard(props.card.id, {
     todoData
   })
+}
+
+const updateMindMapContent = (content: string) => {
+  canvasStore.updateCard(props.card.id, {
+    content
+  })
+}
+
+const handleAddChild = () => {
+  const newNode = canvasStore.addMindMapChild(props.card.id)
+  if (newNode) {
+    // Select the new node for immediate editing
+    canvasStore.selectCard(newNode.id)
+  }
+}
+
+const handleAddSibling = () => {
+  const newNode = canvasStore.addMindMapSibling(props.card.id)
+  if (newNode) {
+    // Select the new node for immediate editing
+    canvasStore.selectCard(newNode.id)
+  }
 }
 
 const changeColor = (color: string) => {

@@ -540,16 +540,16 @@ export const useCanvasStore = defineStore('canvas', {
       }
     },
 
-    addConnection(fromCardId: string, toCardId: string) {
+    addConnection(fromCardId: string, toCardId: string, color: string = '#6366F1', style: 'straight' | 'curved' = 'curved') {
       if (!this.currentBoard) return
 
       const connection = {
         id: crypto.randomUUID(),
         fromCardId,
         toCardId,
-        color: '#6366F1',
+        color,
         width: 2,
-        style: 'curved' as const
+        style
       }
 
       this.currentBoard.connections.push(connection)
@@ -789,6 +789,143 @@ export const useCanvasStore = defineStore('canvas', {
       }
 
       return newCard
+    },
+
+    addMindMapNode(position: { x: number, y: number }, parentId?: string): NoteCard {
+      if (!this.currentBoard) throw new Error('No active board')
+
+      const maxZIndex = this.currentBoard.cards.reduce((max, c) => Math.max(max, c.zIndex), 0)
+      const now = new Date().toISOString()
+
+      // Determine level based on parent
+      let level = 0
+      if (parentId) {
+        const parent = this.currentBoard.cards.find(c => c.id === parentId)
+        if (parent && parent.mindMapData) {
+          level = parent.mindMapData.level + 1
+        }
+      }
+
+      const newCard: NoteCard = {
+        id: crypto.randomUUID(),
+        type: 'mindmap',
+        position,
+        size: { width: 180, height: 60 },
+        content: level === 0 ? 'Central Idea' : 'New Node',
+        mindMapData: {
+          parentId,
+          childIds: [],
+          isCollapsed: false,
+          level
+        },
+        color: this.getMindMapColor(level),
+        zIndex: maxZIndex + 1,
+        createdAt: now,
+        updatedAt: now
+      }
+
+      this.currentBoard.cards.push(newCard)
+      this.currentBoard.updatedAt = now
+
+      // If has parent, add this card to parent's children and create connection
+      if (parentId) {
+        const parent = this.currentBoard.cards.find(c => c.id === parentId)
+        if (parent && parent.mindMapData) {
+          parent.mindMapData.childIds.push(newCard.id)
+          parent.updatedAt = now
+
+          // Create connection from parent to child (black for mindmaps)
+          this.addConnection(parentId, newCard.id, '#000000', 'curved')
+
+          // Sync parent update
+          if (typeof window !== 'undefined') {
+            const { queueSync } = useSync()
+            queueSync('card', 'update', { ...parent, boardId: this.currentBoard.id })
+          }
+        }
+      }
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'create', { ...newCard, boardId: this.currentBoard.id })
+      }
+
+      return newCard
+    },
+
+    addMindMapChild(parentId: string): NoteCard | null {
+      if (!this.currentBoard) return null
+
+      const parent = this.currentBoard.cards.find(c => c.id === parentId)
+      if (!parent || parent.type !== 'mindmap' || !parent.mindMapData) return null
+
+      // Calculate position for new child
+      const childCount = parent.mindMapData.childIds.length
+      const horizontalSpacing = 250
+      const verticalSpacing = 120 // Increased from 100 to prevent overlap
+
+      // Position to the right of parent, stacked vertically below each other
+      const position = {
+        x: parent.position.x + horizontalSpacing,
+        y: parent.position.y + (childCount * verticalSpacing)
+      }
+
+      return this.addMindMapNode(position, parentId)
+    },
+
+    addMindMapSibling(siblingId: string): NoteCard | null {
+      if (!this.currentBoard) return null
+
+      const sibling = this.currentBoard.cards.find(c => c.id === siblingId)
+      if (!sibling || sibling.type !== 'mindmap' || !sibling.mindMapData) return null
+
+      const parentId = sibling.mindMapData.parentId
+      if (!parentId) {
+        // Can't add sibling to root node
+        return null
+      }
+
+      const parent = this.currentBoard.cards.find(c => c.id === parentId)
+      if (!parent || !parent.mindMapData) return null
+
+      // Calculate position below the sibling
+      const verticalSpacing = 120 // Increased to match child spacing
+      const position = {
+        x: sibling.position.x,
+        y: sibling.position.y + verticalSpacing
+      }
+
+      return this.addMindMapNode(position, parentId)
+    },
+
+    toggleMindMapCollapse(nodeId: string) {
+      if (!this.currentBoard) return
+
+      const node = this.currentBoard.cards.find(c => c.id === nodeId)
+      if (!node || node.type !== 'mindmap' || !node.mindMapData) return
+
+      node.mindMapData.isCollapsed = !node.mindMapData.isCollapsed
+      node.updatedAt = new Date().toISOString()
+      this.currentBoard.updatedAt = node.updatedAt
+
+      // Sync to server
+      if (typeof window !== 'undefined') {
+        const { queueSync } = useSync()
+        queueSync('card', 'update', { ...node, boardId: this.currentBoard.id })
+      }
+    },
+
+    getMindMapColor(level: number): string {
+      const colors = [
+        '#E3F2FD', // Level 0 - Light blue (root)
+        '#FFF3E0', // Level 1 - Light orange
+        '#F3E5F5', // Level 2 - Light purple
+        '#E8F5E9', // Level 3 - Light green
+        '#FFF9C4', // Level 4 - Light yellow
+        '#FCE4EC', // Level 5 - Light pink
+      ]
+      return colors[level % colors.length]
     }
   }
 })
