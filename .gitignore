@@ -20,6 +20,8 @@ logs
 .idea
 .claude
 .husky
+.playwright-mcp
+deploy/*
 
 # Local env files
 .env

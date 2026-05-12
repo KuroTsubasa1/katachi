@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Positioning</title>
+  <style>
+    body { margin: 0; padding: 20px; font-family: monospace; }
+    .container {
+      width: 800px;
+      height: 600px;
+      border: 2px solid black;
+      position: relative;
+      overflow: hidden;
+      background: #f0f0f0;
+    }
+    .canvas {
+      position: absolute;
+      transform-origin: top left;
+      width: 100%;
+      height: 100%;
+    }
+    .card {
+      position: absolute;
+      width: 200px;
+      height: 150px;
+      background: yellow;
+      border: 2px solid red;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    .controls button {
+      margin: 5px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h3>Viewport Controls</h3>
+    <div>Pan X: <input id="panX" type="number" value="0"> Y: <input id="panY" type="number" value="0"></div>
+    <div>Scale: <input id="scale" type="number" value="1" step="0.1" min="0.1" max="3"></div>
+    <button onclick="updateTransform()">Apply Transform</button>
+    <button onclick="addCard()">Add Card in Center</button>
+  </div>
+
+  <div class="container">
+    <div class="canvas" id="canvas"></div>
+  </div>
+
+  <pre id="output"></pre>
+
+  <script>
+    let cards = [];
+
+    function updateTransform() {
+      const panX = parseFloat(document.getElementById('panX').value);
+      const panY = parseFloat(document.getElementById('panY').value);
+      const scale = parseFloat(document.getElementById('scale').value);
+
+      const canvas = document.getElementById('canvas');
+      canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+
+      document.getElementById('output').textContent = `Transform: translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    function addCard() {
+      const panX = parseFloat(document.getElementById('panX').value);
+      const panY = parseFloat(document.getElementById('panY').value);
+      const scale = parseFloat(document.getElementById('scale').value);
+
+      // Container dimensions (viewport)
+      const viewportWidth = 800;
+      const viewportHeight = 600;
+
+      // Card dimensions
+      const cardWidth = 200;
+      const cardHeight = 150;
+
+      // Screen space center
+      const screenCenterX = viewportWidth / 2;
+      const screenCenterY = viewportHeight / 2;
+
+      // Convert screen center to world coordinates
+      const worldCenterX = (screenCenterX - panX) / scale;
+      const worldCenterY = (screenCenterY - panY) / scale;
+
+      // Position card so its center aligns with world center
+      const cardX = worldCenterX - cardWidth / 2;
+      const cardY = worldCenterY - cardHeight / 2;
+
+      // Create card element
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.left = cardX + 'px';
+      card.style.top = cardY + 'px';
+      card.textContent = `Card ${cards.length + 1}`;
+
+      document.getElementById('canvas').appendChild(card);
+      cards.push({ x: cardX, y: cardY });
+
+      console.log('Added card:', {
+        viewport: { width: viewportWidth, height: viewportHeight },
+        pan: { x: panX, y: panY },
+        scale: scale,
+        screenCenter: { x: screenCenterX, y: screenCenterY },
+        worldCenter: { x: worldCenterX, y: worldCenterY },
+        cardPosition: { x: cardX, y: cardY }
+      });
+
+      const output = document.getElementById('output');
+      output.textContent += `\nCard ${cards.length} at world (${cardX.toFixed(1)}, ${cardY.toFixed(1)})`;
+    }
+
+    updateTransform();
+  </script>
+</body>
+</html>

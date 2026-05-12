@@ -1,25 +1,47 @@
-# Katachi (形)
+<p align="center">
+  <img src="public/logo.svg" alt="Katachi Logo" width="140" />
+</p>
 
-A visual workspace application inspired by Milanote, built with modern web technologies. Create, organize, and connect notes, images, links, and more on an infinite canvas.
+<h1 align="center">Katachi (形)</h1>
 
-![Nuxt](https://img.shields.io/badge/Nuxt-3.15-00DC82?style=flat&logo=nuxt.js)
-![Vue](https://img.shields.io/badge/Vue-3-4FC08D?style=flat&logo=vue.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat&logo=typescript)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)
+<p align="center">
+  A visual workspace application inspired by Milanote, built with modern web technologies.<br/>
+  Create, organize, and connect notes, images, links, and more on an infinite canvas.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Nuxt-3.15-00DC82?style=flat&logo=nuxt.js" alt="Nuxt"/>
+  <img src="https://img.shields.io/badge/Vue-3-4FC08D?style=flat&logo=vue.js" alt="Vue"/>
+  <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat&logo=typescript" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker" alt="Docker"/>
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/workspace-hero.png" alt="Katachi workspace with mixed card types on an infinite canvas" width="100%" />
+</p>
+
+---
 
 ## Features
 
 ### Canvas & Cards
 - **Infinite Canvas**: Pan and zoom across an unlimited workspace
-- **8 Card Types**:
-  - 📝 **Text Notes**: Simple, quick text notes
+- **14 Card Types**:
+  - 📝 **Text Note**: Simple, quick sticky notes
   - 📄 **Rich Text**: Full WYSIWYG editor with formatting (TipTap)
-  - 📋 **Columns**: Kanban-style organization
-  - 🔗 **Link Cards**: URL cards with metadata preview
+  - 📋 **Column**: Kanban-style stacked organization
+  - 🖼️ **Image**: Upload and scale images
   - ✏️ **Drawing**: Freehand drawing with pen/eraser tools
-  - 🖼️ **Images**: Upload and scale images
+  - 🔗 **Link**: URL cards with metadata preview
+  - 📊 **Table**: Structured tabular data
+  - 🎬 **Storyboard**: Multi-frame visual sequences
+  - 🎵 **Audio**: Embedded audio playback
+  - 🎥 **Video**: Embedded video playback
+  - 🗺️ **Map**: Geographic location pins
   - 📍 **Markdown**: Markdown editor with live preview
-  - 🎨 **Shapes**: Rectangles, circles, and more
+  - ✅ **Todo List**: Checklist with completion tracking
+  - 🧠 **Mind Map**: Branching concept nodes with hierarchical connections
 - **Draw on Images**: Annotate images with freehand drawing
 - **Card Connections**: Visual connections between cards
 - **Drag & Drop**: Intuitive card manipulation with mouse interactions
@@ -42,6 +64,12 @@ A visual workspace application inspired by Milanote, built with modern web techn
 - **Template Categories**: General, Planning, Creative, Business, Education
 - **Shared Board Access**: View boards shared with you
 
+<p align="center">
+  <img src="docs/images/board-templates.png" alt="Board template picker dialog with 10 pre-built templates organized by category" width="85%" />
+  <br/>
+  <sub><em>Template picker — start from Kanban, Mind Map, Sprint Planning, SWOT, and more.</em></sub>
+</p>
+
 ### Productivity
 - **Keyboard Shortcuts**: Comprehensive shortcuts for power users
   - Card operations: Delete, Copy (Cmd+C), Paste (Cmd+V), Duplicate (Cmd+D)
@@ -61,6 +89,51 @@ A visual workspace application inspired by Milanote, built with modern web techn
 - **Auto-Reconnect**: Exponential backoff with graceful fallback to polling
 - **Version History**: Track changes to boards and cards
 - **Offline Support**: LocalStorage fallback when offline
+
+## System Architecture
+
+```mermaid
+graph TB
+    subgraph Client["🖥️ Client (Browser)"]
+        UI[Nuxt 3 + Vue 3 UI]
+        Store[Pinia Store]
+        Canvas[Konva Canvas]
+        WS[WebSocket Client]
+        UI --> Store
+        UI --> Canvas
+        Store <--> WS
+    end
+
+    subgraph Server["⚙️ Server (Nitro / h3)"]
+        API[REST API Routes]
+        WSS[WebSocket Handler]
+        Auth[Code Auth Service]
+        Sync[Sync Service]
+        Sharing[Sharing Service]
+    end
+
+    subgraph Data["💾 Data Layer"]
+        PG[(PostgreSQL<br/>Drizzle ORM)]
+        Redis[(Redis<br/>Pub/Sub + Sessions)]
+        SMTP[📧 SMTP]
+    end
+
+    Store -->|HTTP| API
+    WS <-->|ws://| WSS
+    API --> Auth
+    API --> Sync
+    API --> Sharing
+    Auth --> PG
+    Auth --> SMTP
+    Sync --> PG
+    Sync <--> Redis
+    WSS <--> Redis
+    API --> Redis
+
+    style Client fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    style Server fill:#dcfce7,stroke:#16a34a,color:#14532d
+    style Data fill:#fef3c7,stroke:#d97706,color:#78350f
+```
 
 ## Quick Start
 
@@ -218,6 +291,35 @@ Katachi uses **passwordless authentication** for simplicity and security:
 - **Auto-Registration**: New users created automatically on first login
 - **Session Management**: Redis-based sessions (7-day expiry)
 
+<p align="center">
+  <img src="docs/images/auth-register.png" alt="Passwordless registration screen — name and email, no password required" width="60%" />
+  <br/>
+  <sub><em>No passwords — just enter your email and receive a 6-digit login code.</em></sub>
+</p>
+
+**Login Flow:**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant App as Katachi
+    participant DB as PostgreSQL
+    participant SMTP as 📧 SMTP
+
+    U->>App: Enter email
+    App->>DB: Find or create user
+    App->>App: Generate 6-digit code
+    App->>DB: Save code + 2-min expiry
+    App->>SMTP: Send code email
+    SMTP-->>U: Login code arrives
+    U->>App: Enter 6-digit code
+    App->>DB: Verify code & TTL
+    DB-->>App: ✅ Valid
+    App->>App: Create Redis session
+    App-->>U: Logged in — redirect to workspace
+```
+
 Configure SMTP in `.env`:
 ```env
 SMTP_HOST=your-smtp-server.com
@@ -258,7 +360,36 @@ The application uses a hybrid approach for maximum reliability:
 - `card_created` - New card added
 - `card_updated` - Card content/position changed
 - `card_deleted` - Card removed
-- Real-time across all 13 card types
+- Real-time across all 14 card types
+
+**Sync Flow:**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as User A
+    participant API as Nitro API
+    participant DB as PostgreSQL
+    participant R as Redis Pub/Sub
+    participant B as User B
+
+    rect rgb(220, 252, 231)
+        Note over A,B: Primary path — WebSocket (under 200ms)
+        A->>API: Edit card (ws://)
+        API->>DB: Persist change
+        API->>R: Publish board:{id} event
+        R-->>B: Broadcast event
+        B->>B: Apply optimistic update
+    end
+
+    rect rgb(254, 243, 199)
+        Note over A,B: Fallback path — Polling (0 to 5s)
+        B->>API: GET /api/boards/{id} (every 5s)
+        API->>DB: Read latest version
+        DB-->>API: Board state
+        API-->>B: Updated board
+    end
+```
 
 ### Board Sharing
 - **Share by Email**: Enter collaborator's email address

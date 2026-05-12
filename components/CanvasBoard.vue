@@ -192,20 +192,6 @@
         Draw
       </button>
 
-      <!-- Connect cards button -->
-      <button
-        class="px-3 py-2 bg-white dark:bg-gray-800 rounded shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2 text-sm font-medium"
-        :class="{
-          'bg-purple-500 text-white hover:bg-purple-600': canvasStore.currentTool.type === 'connect'
-        }"
-        @click="toggleConnectMode"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-        </svg>
-        Connect
-      </button>
-
       <!-- Clear drawing button -->
       <button
         v-if="hasAnyDrawings"

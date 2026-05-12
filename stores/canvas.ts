@@ -204,6 +204,28 @@ export const useCanvasStore = defineStore('canvas', {
       const cardToDelete = this.currentBoard.cards.find(c => c.id === cardId)
       if (!cardToDelete) return
 
+      // If it's a mindmap node with children, delete them recursively
+      if (cardToDelete.type === 'mindmap' && cardToDelete.mindMapData?.childIds) {
+        const childIds = [...cardToDelete.mindMapData.childIds]
+        childIds.forEach(childId => {
+          this.deleteCard(childId) // Recursive delete
+        })
+      }
+
+      // Remove from parent's childIds if this is a mindmap node
+      if (cardToDelete.type === 'mindmap' && cardToDelete.mindMapData?.parentId) {
+        const parent = this.currentBoard.cards.find(c => c.id === cardToDelete.mindMapData?.parentId)
+        if (parent && parent.mindMapData) {
+          parent.mindMapData.childIds = parent.mindMapData.childIds.filter(id => id !== cardId)
+          parent.updatedAt = new Date().toISOString()
+        }
+      }
+
+      // Delete connections to/from this card
+      this.currentBoard.connections = this.currentBoard.connections.filter(
+        conn => conn.fromCardId !== cardId && conn.toCardId !== cardId
+      )
+
       this.currentBoard.cards = this.currentBoard.cards.filter(c => c.id !== cardId)
       this.currentBoard.updatedAt = new Date().toISOString()
 
