@@ -263,12 +263,23 @@ mila_note/
 
 Comprehensive documentation is available in the `/docs` directory:
 
+**Getting started**
 - [Getting Started](./docs/getting-started.md) - Setup and development guide
+- [Contributing](./docs/contributing.md) - Development guidelines
+
+**Architecture & API**
 - [Architecture](./docs/architecture.md) - System design and principles
 - [API Documentation](./docs/api.md) - API endpoints and data structures
 - [Authentication](./docs/authentication.md) - Passwordless auth system
+- [WebSocket Implementation](./docs/websocket-implementation.md) - Real-time sync internals
+
+**Features**
 - [Board Management](./docs/board-management.md) - Board features and sharing
-- [Contributing](./docs/contributing.md) - Development guidelines
+- [Mind Map Feature](./docs/mind-map-feature.md) - Mind map node type and hierarchical connections
+- [Card Positioning](./docs/card-positioning.md) - Canvas coordinate system and card placement
+
+**Operations**
+- [Database Migrations](./docs/database-migrations.md) - Schema migration workflow with Drizzle
 
 ## Architecture Principles
 
@@ -526,6 +537,7 @@ docker-compose down -v
 - **Content not syncing**: Hard refresh (Cmd+Shift+R) to clear browser cache
 - **Old content appears**: Clear localStorage with `localStorage.clear()` in console
 - **Shared boards empty**: Ensure both users are logged in and have proper permissions
+- **Sync disabled entirely**: Verify `NUXT_PUBLIC_ENABLE_SYNC=true` in `.env`
 
 ### Docker Issues
 - **Port conflicts**: Change ports in `docker-compose.yml` if 3000, 5432, or 6379 are in use
