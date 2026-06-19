@@ -6,7 +6,9 @@ services:
       dockerfile: Dockerfile
     ports:
       # Loopback only — host nginx reverse-proxies to this. Not exposed to the internet.
-      - "127.0.0.1:3000:3000"
+      # Host port 3500 matches the existing nginx config for katachi.lasseharm.space
+      # (proxy_pass http://localhost:3500); container still listens on 3000 internally.
+      - "127.0.0.1:3500:3000"
     env_file:
       - .env
     environment:
