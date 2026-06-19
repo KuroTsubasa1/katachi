@@ -27,6 +27,7 @@ jobs:
             'bash -lc "
               set -euo pipefail
               cd /opt/katachi
+              git config --global --get-all safe.directory 2>/dev/null | grep -qxF /opt/katachi || git config --global --add safe.directory /opt/katachi
               git fetch origin
               git reset --hard origin/main
               docker compose up -d --build
