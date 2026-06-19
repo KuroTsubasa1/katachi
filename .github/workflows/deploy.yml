@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on server
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'bash -lc "
+              set -euo pipefail
+              cd /opt/katachi
+              git fetch origin
+              git reset --hard origin/main
+              docker compose up -d --build
+              docker image prune -f
+            "'
+
+      - name: Health check
+        run: |
+          url="https://katachi.lasseharm.space"
+          for attempt in $(seq 1 12); do
+            code="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 10 "$url" || true)"
+            if [ "$code" = "200" ]; then
+              echo "Health check passed (HTTP $code)"
+              exit 0
+            fi
+            echo "Attempt $attempt: got '$code', retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed: $url never returned 200"
+          exit 1

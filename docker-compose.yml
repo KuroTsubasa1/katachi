@@ -5,7 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      # Loopback only — host nginx reverse-proxies to this. Not exposed to the internet.
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env
     environment:
@@ -29,8 +30,7 @@ services:
       POSTGRES_USER: katachi
       POSTGRES_PASSWORD: katachi_password
       POSTGRES_DB: katachi_db
-    ports:
-      - "5432:5432"
+    # No host port published — reachable only inside katachi_network as "db:5432".
     volumes:
       - katachi_postgres_data:/var/lib/postgresql/data
     networks:
@@ -41,8 +41,7 @@ services:
   redis:
     container_name: katachi-redis
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # No host port published — reachable only inside katachi_network as "redis:6379".
     volumes:
       - katachi_redis_data:/data
     networks:
