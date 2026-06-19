@@ -66,23 +66,27 @@ nginx (host) ──TLS── katachi.lasseharm.space ──proxy──▶ 127.0.
   3. Remote script (fails fast with `set -e`):
      - `cd /opt/katachi`
      - `git fetch origin && git reset --hard origin/main`
-     - `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`
+     - `docker compose up -d --build`
      - `docker image prune -f`
   4. **Health check** step: `curl -fsS -o /dev/null -w "%{http_code}" https://katachi.lasseharm.space`
      with a short retry loop (give the container a few seconds to come up). Fail the job
      on non-200.
 
-### 2. `docker-compose.prod.yml` (new override)
+### 2. `docker-compose.yml` hardening (edit base file)
 
-Layered on top of the existing `docker-compose.yml`. Purpose: harden for a public host.
+`docker-compose.dev.yml` is fully standalone (its own network, dev Dockerfile, bind mounts)
+and does **not** extend `docker-compose.yml` — so `docker-compose.yml` is the production
+file and can be hardened directly without affecting local dev.
+
+> A `docker-compose.prod.yml` override was rejected: Compose **concatenates** `ports` lists
+> across `-f` files, so an override can neither remove a published port (`ports: []` appends
+> nothing) nor replace a public bind with a loopback one (it adds a second mapping). Editing
+> the base file is the only reliable way to unpublish ports.
 
 - `app`: bind published port to **`127.0.0.1:3000:3000`** (loopback only — nginx reaches it
   locally; the app is not directly exposed to the internet).
 - `db`: remove the public `5432` mapping (reachable only inside `katachi_network`).
 - `redis`: remove the public `6379` mapping (reachable only inside `katachi_network`).
-
-> The base `docker-compose.yml` keeps its current dev-friendly port publishing; production
-> behavior comes from layering the override. The deploy command always passes both `-f` files.
 
 ### 3. `deploy/nginx/katachi.conf`
 
