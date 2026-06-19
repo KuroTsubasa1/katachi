@@ -16,6 +16,14 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
     restart: unless-stopped
+    # The mail server runs as another container on this host, published on the
+    # host's public IP (mail.lasseharm.space). A container can't hairpin to the
+    # host's public IP to reach another container's published port, so SMTP
+    # times out. Resolve the mail hostname to the Docker host gateway instead —
+    # the published 465/587 ports are reachable there. Hostname is unchanged, so
+    # the TLS cert name still matches.
+    extra_hosts:
+      - "mail.lasseharm.space:host-gateway"
     volumes:
       - ./data:/app/data
     networks:
