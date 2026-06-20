@@ -16,18 +16,19 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
     restart: unless-stopped
-    # The mail server runs as another container on this host, published on the
-    # host's public IP (mail.lasseharm.space). A container can't hairpin to the
-    # host's public IP to reach another container's published port, so SMTP
-    # times out. Resolve the mail hostname to the Docker host gateway instead —
-    # the published 465/587 ports are reachable there. Hostname is unchanged, so
+    # The mail server is mailcow's postfix container on its own Docker network.
+    # Going via the host (public IP or gateway) is blocked by the host firewall,
+    # so we join the mailcow network and talk to postfix container-to-container,
+    # exactly like db/redis. mailcow pins postfix to a static IP (172.22.1.253),
+    # so we map the mail hostname straight to it — SMTP_HOST stays unchanged and
     # the TLS cert name still matches.
     extra_hosts:
-      - "mail.lasseharm.space:host-gateway"
+      - "mail.lasseharm.space:172.22.1.253"
     volumes:
       - ./data:/app/data
     networks:
       - katachi_network
+      - mailcow-network
     depends_on:
       - db
       - redis
@@ -65,3 +66,8 @@ volumes:
 networks:
   katachi_network:
     driver: bridge
+  # mailcow's network, created by the mailcow-dockerized stack. Joining it lets
+  # the app reach the postfix container directly (bypasses the host firewall).
+  mailcow-network:
+    external: true
+    name: mailcowdockerized_mailcow-network
