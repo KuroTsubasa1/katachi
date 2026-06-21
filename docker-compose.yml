@@ -16,14 +16,10 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
     restart: unless-stopped
-    # The mail server is mailcow's postfix container on its own Docker network.
-    # Going via the host (public IP or gateway) is blocked by the host firewall,
-    # so we join the mailcow network and talk to postfix container-to-container,
-    # exactly like db/redis. mailcow pins postfix to a static IP (172.22.1.253),
-    # so we map the mail hostname straight to it — SMTP_HOST stays unchanged and
-    # the TLS cert name still matches.
-    extra_hosts:
-      - "mail.lasseharm.space:172.22.1.253"
+    # Joins mailcow's network so the app reaches its postfix container directly
+    # (container-to-container, like db/redis). Going via the host is blocked by
+    # the host firewall, and the public hostname hairpins. The app connects with
+    # SMTP_HOST=postfix-mailcow, resolved by Docker DNS on this network.
     volumes:
       - ./data:/app/data
     networks:
