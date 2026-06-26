@@ -376,7 +376,31 @@ const handleTouchEnd = (e: TouchEvent) => {
   }
 }
 
+// Walk up from the wheel target; if it's inside a scrollable element that can
+// still scroll in the wheel's direction, let the browser scroll it natively
+// instead of zooming the canvas.
+const canScrollNatively = (e: WheelEvent): boolean => {
+  let el = e.target as HTMLElement | null
+  const container = e.currentTarget as HTMLElement
+  while (el && el !== container) {
+    const overflowY = window.getComputedStyle(el).overflowY
+    const scrollable =
+      el.tagName === 'TEXTAREA' || overflowY === 'auto' || overflowY === 'scroll'
+    if (scrollable && el.scrollHeight > el.clientHeight) {
+      const atTop = el.scrollTop <= 0
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+      if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) {
+        return true
+      }
+    }
+    el = el.parentElement
+  }
+  return false
+}
+
 const handleWheel = (e: WheelEvent) => {
+  if (canScrollNatively(e)) return
+
   e.preventDefault()
 
   const delta = e.deltaY > 0 ? -0.1 : 0.1

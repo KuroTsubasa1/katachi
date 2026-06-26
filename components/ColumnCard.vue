@@ -20,6 +20,7 @@
         v-for="cardId in localColumnCards"
         :key="cardId"
         class="bg-white dark:bg-gray-800 p-3 rounded shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow relative group"
+        :style="cardColorStyle(cardId)"
         @dragover.prevent
         @drop="handleDropFromColumn($event, cardId)"
       >
@@ -116,6 +117,14 @@ const isDropTarget = computed(() =>
   canvasStore.draggingCardId !== null &&
   canvasStore.draggingCardId !== props.columnId
 )
+
+// Preserve a card's own color when it's shown inside the column. Falls back to
+// the default white/gray wrapper classes when the card has no color set.
+const cardColorStyle = (cardId: string) => {
+  const card = canvasStore.currentBoard?.cards.find(c => c.id === cardId)
+  const color = card?.color
+  return color && color !== '#ffffff' ? { backgroundColor: color } : {}
+}
 
 const updateTitle = () => {
   emit('update:title', localTitle.value)

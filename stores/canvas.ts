@@ -31,6 +31,8 @@ export const useCanvasStore = defineStore('canvas', {
     darkMode: false,
     globalDrawingPaths: [] as string[],
     connectionStart: null as string | null,
+    // In-progress drag of a mind-map cross-link, in canvas coordinates.
+    linkDrag: null as { fromId: string; x: number; y: number } | null,
     currentTool: {
       type: 'select',
       color: '#000000',
@@ -259,7 +261,35 @@ export const useCanvasStore = defineStore('canvas', {
     },
 
     updateViewport(updates: Partial<ViewPort>) {
-      this.viewport = { ...this.viewport, ...updates }
+      this.viewport = this.clampViewport({ ...this.viewport, ...updates })
+    },
+
+    // Keep panning bounded to the content (bounding box of all cards) plus a
+    // margin, so the viewport can't drift off into empty "dead space". Returns
+    // the viewport unchanged when there's nothing to bound (no board/cards, or
+    // the container size isn't known yet).
+    clampViewport(vp: ViewPort): ViewPort {
+      const board = this.currentBoard
+      const W = this.containerSize.width
+      const H = this.containerSize.height
+      if (!board || board.cards.length === 0 || W <= 0 || H <= 0) return vp
+
+      const s = vp.scale
+      const minX = Math.min(...board.cards.map(c => c.position.x))
+      const minY = Math.min(...board.cards.map(c => c.position.y))
+      const maxX = Math.max(...board.cards.map(c => c.position.x + c.size.width))
+      const maxY = Math.max(...board.cards.map(c => c.position.y + c.size.height))
+
+      const margin = 200 // px of content allowed to sit past the viewport edge
+      // When content is smaller than the viewport the range inverts; center it.
+      const clampRange = (v: number, a: number, b: number) =>
+        a <= b ? Math.min(Math.max(v, a), b) : (a + b) / 2
+
+      return {
+        ...vp,
+        x: clampRange(vp.x, margin - maxX * s, W - margin - minX * s),
+        y: clampRange(vp.y, margin - maxY * s, H - margin - minY * s)
+      }
     },
 
     updateContainerSize(width: number, height: number) {
@@ -582,6 +612,35 @@ export const useCanvasStore = defineStore('canvas', {
       this.currentBoard.connections = this.currentBoard.connections.filter(c => c.id !== connectionId)
     },
 
+    startLinkDrag(fromId: string, x: number, y: number) {
+      this.linkDrag = { fromId, x, y }
+    },
+
+    updateLinkDrag(x: number, y: number) {
+      if (this.linkDrag) {
+        this.linkDrag.x = x
+        this.linkDrag.y = y
+      }
+    },
+
+    endLinkDrag() {
+      this.linkDrag = null
+    },
+
+    // Create a non-hierarchical "graph" link between two mind-map nodes.
+    // Skips self-links and any pair that is already connected (either direction).
+    createMindMapLink(fromId: string, toId: string) {
+      if (!this.currentBoard || fromId === toId) return
+
+      const exists = this.currentBoard.connections.some(c =>
+        (c.fromCardId === fromId && c.toCardId === toId) ||
+        (c.fromCardId === toId && c.toCardId === fromId)
+      )
+      if (exists) return
+
+      this.addConnection(fromId, toId, '#94A3B8', 'curved')
+    },
+
     addShape(shape: Omit<Shape, 'id'>) {
       if (!this.currentBoard) return
 
@@ -882,15 +941,24 @@ export const useCanvasStore = defineStore('canvas', {
       const parent = this.currentBoard.cards.find(c => c.id === parentId)
       if (!parent || parent.type !== 'mindmap' || !parent.mindMapData) return null
 
-      // Calculate position for new child
-      const childCount = parent.mindMapData.childIds.length
       const horizontalSpacing = 250
-      const verticalSpacing = 120 // Increased from 100 to prevent overlap
+      const gap = 40
+      const newNodeHeight = 60 // matches addMindMapNode default size
 
-      // Position to the right of parent, stacked vertically below each other
+      // Place to the right of the parent. Vertically, drop below the lowest
+      // existing child so siblings never overlap regardless of how they were
+      // created; the first child is centered on the parent.
+      const siblings = parent.mindMapData.childIds
+        .map(id => this.currentBoard!.cards.find(c => c.id === id))
+        .filter((c): c is NoteCard => !!c)
+
+      const y = siblings.length === 0
+        ? parent.position.y + parent.size.height / 2 - newNodeHeight / 2
+        : Math.max(...siblings.map(s => s.position.y + s.size.height)) + gap
+
       const position = {
         x: parent.position.x + horizontalSpacing,
-        y: parent.position.y + (childCount * verticalSpacing)
+        y
       }
 
       return this.addMindMapNode(position, parentId)
@@ -908,17 +976,9 @@ export const useCanvasStore = defineStore('canvas', {
         return null
       }
 
-      const parent = this.currentBoard.cards.find(c => c.id === parentId)
-      if (!parent || !parent.mindMapData) return null
-
-      // Calculate position below the sibling
-      const verticalSpacing = 120 // Increased to match child spacing
-      const position = {
-        x: sibling.position.x,
-        y: sibling.position.y + verticalSpacing
-      }
-
-      return this.addMindMapNode(position, parentId)
+      // A sibling is just another child of the same parent; reuse the shared
+      // placement so Tab and Enter can never drop two nodes at the same spot.
+      return this.addMindMapChild(parentId)
     },
 
     toggleMindMapCollapse(nodeId: string) {

@@ -1,7 +1,8 @@
 <template>
   <div
-    class="note-card absolute rounded-lg shadow-lg border-2 transition-shadow"
+    class="note-card group absolute rounded-lg border-2 transition-shadow"
     :class="{
+      'shadow-lg': card.type !== 'image',
       'border-blue-500 dark:border-blue-400': isSelected,
       'border-purple-500 dark:border-purple-400 ring-2 ring-purple-300 dark:ring-purple-600': canvasStore.connectionStart === card.id,
       'border-transparent': !isSelected && canvasStore.connectionStart !== card.id,
@@ -14,7 +15,7 @@
       top: `${card.position.y}px`,
       width: `${card.size.width}px`,
       height: `${card.size.height}px`,
-      backgroundColor: card.color || '#ffffff',
+      backgroundColor: card.type === 'image' ? 'transparent' : (card.color || '#ffffff'),
       zIndex: Math.min(card.zIndex, 9999),
       pointerEvents: canvasStore.currentTool.type !== 'select' ? 'none' : 'auto'
     }"
@@ -185,6 +186,15 @@
       class="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 cursor-se-resize rounded-tl z-50 touch-none"
       @mousedown.stop="handleResizeStart"
       @touchstart.stop="handleResizeTouchStart"
+    />
+
+    <!-- Mind-map link handle: drag onto another node to create a graph link -->
+    <div
+      v-if="card.type === 'mindmap'"
+      class="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-400 border-2 border-white dark:border-gray-800 cursor-crosshair z-50 opacity-0 group-hover:opacity-100 transition-opacity"
+      :class="{ '!opacity-100': isSelected }"
+      title="Drag to link to another node"
+      @mousedown.stop="handleLinkDragStart"
     />
   </div>
 </template>
@@ -364,6 +374,53 @@ const handleDragEnd = () => {
 
   document.removeEventListener('mousemove', handleDrag)
   document.removeEventListener('mouseup', handleDragEnd)
+}
+
+// --- Mind-map cross-link drag (drag the handle onto another node) ---
+let linkDragStartClient = { x: 0, y: 0 }
+let linkSourceCenter = { x: 0, y: 0 }
+
+const handleLinkDragStart = (e: MouseEvent) => {
+  if (props.card.type !== 'mindmap') return
+
+  linkDragStartClient = { x: e.clientX, y: e.clientY }
+  linkSourceCenter = {
+    x: props.card.position.x + props.card.size.width / 2,
+    y: props.card.position.y + props.card.size.height / 2
+  }
+  canvasStore.startLinkDrag(props.card.id, linkSourceCenter.x, linkSourceCenter.y)
+
+  document.addEventListener('mousemove', handleLinkDrag)
+  document.addEventListener('mouseup', handleLinkDragEnd)
+}
+
+const handleLinkDrag = (e: MouseEvent) => {
+  const scale = canvasStore.viewport.scale
+  const x = linkSourceCenter.x + (e.clientX - linkDragStartClient.x) / scale
+  const y = linkSourceCenter.y + (e.clientY - linkDragStartClient.y) / scale
+  canvasStore.updateLinkDrag(x, y)
+}
+
+const handleLinkDragEnd = (e: MouseEvent) => {
+  document.removeEventListener('mousemove', handleLinkDrag)
+  document.removeEventListener('mouseup', handleLinkDragEnd)
+
+  // Find a mind-map node under the cursor other than the source node.
+  const targetEl = document.elementsFromPoint(e.clientX, e.clientY)
+    .map(el => (el as HTMLElement).closest('.note-card'))
+    .find((el): el is HTMLElement =>
+      !!el && el.getAttribute('data-card-id') !== props.card.id
+    )
+
+  const targetId = targetEl?.getAttribute('data-card-id')
+  if (targetId) {
+    const targetCard = canvasStore.currentBoard?.cards.find(c => c.id === targetId)
+    if (targetCard?.type === 'mindmap') {
+      canvasStore.createMindMapLink(props.card.id, targetId)
+    }
+  }
+
+  canvasStore.endLinkDrag()
 }
 
 const handleTouchStart = (e: TouchEvent) => {

@@ -219,4 +219,112 @@ describe('Canvas Store', () => {
       expect(store.viewport.scale).toBe(1.5)
     })
   })
+
+  describe('Mind Map node placement', () => {
+    type Rect = { position: { x: number; y: number }; size: { width: number; height: number } }
+
+    const overlaps = (a: Rect, b: Rect) =>
+      a.position.x < b.position.x + b.size.width &&
+      b.position.x < a.position.x + a.size.width &&
+      a.position.y < b.position.y + b.size.height &&
+      b.position.y < a.position.y + a.size.height
+
+    it('places children without overlapping each other or the parent', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!
+      const b = store.addMindMapChild(root.id)!
+      const c = store.addMindMapChild(root.id)!
+
+      const nodes = [root, a, b, c]
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          expect(overlaps(nodes[i], nodes[j])).toBe(false)
+        }
+      }
+    })
+
+    it('does not collide when mixing children (Tab) and siblings (Enter)', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!     // Tab
+      const b = store.addMindMapChild(root.id)!     // Tab
+      const s = store.addMindMapSibling(a.id)!      // Enter on first child
+
+      const nodes = [a, b, s]
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          expect(overlaps(nodes[i], nodes[j])).toBe(false)
+        }
+      }
+    })
+  })
+
+  describe('Mind Map cross-links', () => {
+    it('creates a graph link between two nodes', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!
+      const b = store.addMindMapChild(root.id)!
+
+      const before = store.currentBoard!.connections.length
+      store.createMindMapLink(a.id, b.id)
+
+      expect(store.currentBoard!.connections.length).toBe(before + 1)
+      const link = store.currentBoard!.connections.at(-1)!
+      expect([link.fromCardId, link.toCardId].sort()).toEqual([a.id, b.id].sort())
+    })
+
+    it('ignores self-links and duplicate links', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!
+      const b = store.addMindMapChild(root.id)!
+
+      store.createMindMapLink(a.id, a.id) // self
+      store.createMindMapLink(a.id, b.id)
+      store.createMindMapLink(a.id, b.id) // duplicate
+      store.createMindMapLink(b.id, a.id) // duplicate, reversed
+
+      const links = store.currentBoard!.connections.filter(c =>
+        [c.fromCardId, c.toCardId].includes(a.id) &&
+        [c.fromCardId, c.toCardId].includes(b.id)
+      )
+      expect(links.length).toBe(1)
+    })
+  })
+
+  describe('Viewport pan clamping', () => {
+    it('clamps panning to content bounds + margin', () => {
+      const store = useCanvasStore()
+      store.createBoard('Board')
+      store.updateContainerSize(1000, 800)
+      // One 180x60 node at the origin -> content bounds [0,0]..[180,60].
+      store.addMindMapNode({ x: 0, y: 0 })
+
+      store.updateViewport({ x: 100000, y: 100000, scale: 1 })
+
+      // Upper bounds: x = W - margin - minX*s = 1000-200-0 = 800; y = 800-200-0 = 600.
+      expect(store.viewport.x).toBe(800)
+      expect(store.viewport.y).toBe(600)
+    })
+
+    it('does not clamp when there is no board', () => {
+      const store = useCanvasStore()
+      store.updateContainerSize(1000, 800)
+
+      store.updateViewport({ x: 100000, y: 100000 })
+
+      expect(store.viewport.x).toBe(100000)
+      expect(store.viewport.y).toBe(100000)
+    })
+  })
 })
