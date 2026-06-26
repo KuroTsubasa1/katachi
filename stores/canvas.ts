@@ -980,7 +980,7 @@ export const useCanvasStore = defineStore('canvas', {
         : Math.max(...siblings.map(s => s.position.y + s.size.height)) + gap
 
       const position = {
-        x: parent.position.x - horizontalSpacing,
+        x: parent.position.x + horizontalSpacing,
         y
       }
 

@@ -173,14 +173,14 @@ const getConnectionPath = (connection: Connection): string => {
   const cy = (c: typeof fromCard) => c.position.y + c.size.height / 2
 
   if (hierarchy) {
-    // Leftward layout: parent's LEFT edge -> child's RIGHT edge, with a smooth
-    // cubic curve using horizontal control handles.
-    const x1 = fromCard.position.x
+    // Children grow to the right: parent's RIGHT edge -> child's LEFT edge,
+    // with a smooth cubic curve using horizontal control handles.
+    const x1 = fromCard.position.x + fromCard.size.width
     const y1 = cy(fromCard)
-    const x2 = toCard.position.x + toCard.size.width
+    const x2 = toCard.position.x
     const y2 = cy(toCard)
     const dx = Math.max(Math.abs(x2 - x1) * 0.5, 40)
-    return `M ${x1} ${y1} C ${x1 - dx} ${y1}, ${x2 + dx} ${y2}, ${x2} ${y2}`
+    return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
   }
 
   if (crossLink) {
