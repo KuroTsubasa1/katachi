@@ -23,6 +23,7 @@
         :style="cardColorStyle(cardId)"
         draggable="true"
         title="Drag out to remove from column"
+        @mousedown.stop
         @dragstart="onColumnCardDragStart($event, cardId)"
         @dragover.prevent
         @drop="handleDropFromColumn($event, cardId)"
