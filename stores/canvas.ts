@@ -31,6 +31,8 @@ export const useCanvasStore = defineStore('canvas', {
     darkMode: false,
     globalDrawingPaths: [] as string[],
     connectionStart: null as string | null,
+    // In-progress drag of a mind-map cross-link, in canvas coordinates.
+    linkDrag: null as { fromId: string; x: number; y: number } | null,
     currentTool: {
       type: 'select',
       color: '#000000',
@@ -580,6 +582,35 @@ export const useCanvasStore = defineStore('canvas', {
     removeConnection(connectionId: string) {
       if (!this.currentBoard) return
       this.currentBoard.connections = this.currentBoard.connections.filter(c => c.id !== connectionId)
+    },
+
+    startLinkDrag(fromId: string, x: number, y: number) {
+      this.linkDrag = { fromId, x, y }
+    },
+
+    updateLinkDrag(x: number, y: number) {
+      if (this.linkDrag) {
+        this.linkDrag.x = x
+        this.linkDrag.y = y
+      }
+    },
+
+    endLinkDrag() {
+      this.linkDrag = null
+    },
+
+    // Create a non-hierarchical "graph" link between two mind-map nodes.
+    // Skips self-links and any pair that is already connected (either direction).
+    createMindMapLink(fromId: string, toId: string) {
+      if (!this.currentBoard || fromId === toId) return
+
+      const exists = this.currentBoard.connections.some(c =>
+        (c.fromCardId === fromId && c.toCardId === toId) ||
+        (c.fromCardId === toId && c.toCardId === fromId)
+      )
+      if (exists) return
+
+      this.addConnection(fromId, toId, '#94A3B8', 'curved')
     },
 
     addShape(shape: Omit<Shape, 'id'>) {

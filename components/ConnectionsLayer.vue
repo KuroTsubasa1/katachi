@@ -1,8 +1,13 @@
 <template>
   <svg class="absolute inset-0 pointer-events-none" style="z-index: 500;" :width="10000" :height="10000">
-    <!-- Draw connections as curved arrows -->
-    <g v-for="connection in connections" :key="connection.id">
-      <defs>
+    <!-- Draw connections. Cross-links (graph links between mind-map nodes that
+         aren't parent/child) render dashed, muted and without an arrowhead. -->
+    <g
+      v-for="connection in connections"
+      :key="connection.id"
+      class="connection-group"
+    >
+      <defs v-if="!isCrossLink(connection)">
         <marker
           :id="`arrowhead-${connection.id}`"
           markerWidth="10"
@@ -16,15 +21,38 @@
         </marker>
       </defs>
 
+      <!-- Invisible wide hit area so the thin line is easy to click to delete -->
       <path
+        class="connection-hit"
+        :d="getConnectionPath(connection)"
+        stroke="transparent"
+        stroke-width="14"
+        fill="none"
+        @click="canvasStore.removeConnection(connection.id)"
+      />
+
+      <path
+        class="connection-visible"
         :d="getConnectionPath(connection)"
         :stroke="connection.color"
         :stroke-width="connection.width"
+        :stroke-dasharray="isCrossLink(connection) ? '6,5' : undefined"
         fill="none"
         stroke-linecap="round"
-        :marker-end="`url(#arrowhead-${connection.id})`"
+        :marker-end="isCrossLink(connection) ? undefined : `url(#arrowhead-${connection.id})`"
       />
     </g>
+
+    <!-- Preview while dragging a new mind-map cross-link -->
+    <path
+      v-if="linkPreviewPath"
+      :d="linkPreviewPath"
+      stroke="#94A3B8"
+      stroke-width="2"
+      fill="none"
+      stroke-dasharray="6,5"
+      stroke-linecap="round"
+    />
 
     <!-- Draw shapes -->
     <g v-for="shape in shapes" :key="shape.id">
@@ -118,49 +146,89 @@ const connectionPreview = ref<string | null>(null)
 const connections = computed(() => canvasStore.currentBoard?.connections || [])
 const shapes = computed(() => canvasStore.currentBoard?.shapes || [])
 
+const findCard = (id: string) =>
+  canvasStore.currentBoard?.cards.find(c => c.id === id)
+
+// A cross-link is a connection between two mind-map nodes that are NOT in a
+// parent/child relationship (i.e. a user-drawn graph edge, not the hierarchy).
+const isCrossLink = (connection: Connection): boolean => {
+  const fromCard = findCard(connection.fromCardId)
+  const toCard = findCard(connection.toCardId)
+  if (!fromCard || !toCard) return false
+  if (fromCard.type !== 'mindmap' || toCard.type !== 'mindmap') return false
+  const parentChild =
+    fromCard.mindMapData?.childIds?.includes(toCard.id) ||
+    toCard.mindMapData?.childIds?.includes(fromCard.id)
+  return !parentChild
+}
+
 const getConnectionPath = (connection: Connection): string => {
-  if (!canvasStore.currentBoard) return ''
-
-  const fromCard = canvasStore.currentBoard.cards.find(c => c.id === connection.fromCardId)
-  const toCard = canvasStore.currentBoard.cards.find(c => c.id === connection.toCardId)
-
+  const fromCard = findCard(connection.fromCardId)
+  const toCard = findCard(connection.toCardId)
   if (!fromCard || !toCard) return ''
 
-  let x1, y1, x2, y2
+  // Hierarchy links anchor right-edge -> left-edge; everything else (cross-links
+  // and non-mindmap connections) anchors center -> center.
+  const hierarchy =
+    fromCard.type === 'mindmap' &&
+    toCard.type === 'mindmap' &&
+    !isCrossLink(connection)
 
-  // For mindmap nodes, connect from right side of parent to left side of child
-  if (fromCard.type === 'mindmap' && toCard.type === 'mindmap') {
-    // Right edge of parent (right side, vertical center)
+  let x1, y1, x2, y2
+  if (hierarchy) {
     x1 = fromCard.position.x + fromCard.size.width
     y1 = fromCard.position.y + fromCard.size.height / 2
-
-    // Left edge of child (left side, vertical center)
     x2 = toCard.position.x
     y2 = toCard.position.y + toCard.size.height / 2
   } else {
-    // Default: center points for non-mindmap connections
     x1 = fromCard.position.x + fromCard.size.width / 2
     y1 = fromCard.position.y + fromCard.size.height / 2
     x2 = toCard.position.x + toCard.size.width / 2
     y2 = toCard.position.y + toCard.size.height / 2
   }
 
+  if (hierarchy) {
+    // Smooth side-to-side curve: cubic bezier with horizontal control handles.
+    const dx = Math.max(Math.abs(x2 - x1) * 0.5, 40)
+    return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
+  }
+
   if (connection.style === 'curved') {
-    // Mindmap links read best as a smooth side-to-side curve: cubic bezier with
-    // horizontal control handles so the line leaves/enters each node level.
-    if (fromCard.type === 'mindmap' && toCard.type === 'mindmap') {
-      const dx = Math.max(Math.abs(x2 - x1) * 0.5, 40)
-      return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
-    }
-    // Other curved connections: quadratic curve through the midpoint.
     const controlX = (x1 + x2) / 2
     const controlY = (y1 + y2) / 2
     return `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`
-  } else {
-    // Straight line
-    return `M ${x1} ${y1} L ${x2} ${y2}`
   }
+  return `M ${x1} ${y1} L ${x2} ${y2}`
 }
+
+// Dashed preview line from the source node center to the cursor while dragging.
+const linkPreviewPath = computed<string | null>(() => {
+  const drag = canvasStore.linkDrag
+  if (!drag) return null
+  const fromCard = findCard(drag.fromId)
+  if (!fromCard) return null
+  const x1 = fromCard.position.x + fromCard.size.width / 2
+  const y1 = fromCard.position.y + fromCard.size.height / 2
+  return `M ${x1} ${y1} L ${drag.x} ${drag.y}`
+})
 
 defineExpose({ connectionPreview })
 </script>
+
+<style scoped>
+/* The SVG itself is pointer-events:none; re-enable hits on the wide hit path
+   so a connection can be clicked to delete, without blocking canvas panning. */
+.connection-hit {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.connection-visible {
+  pointer-events: none;
+  transition: stroke-width 0.1s ease;
+}
+
+.connection-group:hover .connection-visible {
+  stroke-width: 4;
+}
+</style>

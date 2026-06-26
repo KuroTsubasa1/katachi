@@ -263,4 +263,42 @@ describe('Canvas Store', () => {
       }
     })
   })
+
+  describe('Mind Map cross-links', () => {
+    it('creates a graph link between two nodes', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!
+      const b = store.addMindMapChild(root.id)!
+
+      const before = store.currentBoard!.connections.length
+      store.createMindMapLink(a.id, b.id)
+
+      expect(store.currentBoard!.connections.length).toBe(before + 1)
+      const link = store.currentBoard!.connections.at(-1)!
+      expect([link.fromCardId, link.toCardId].sort()).toEqual([a.id, b.id].sort())
+    })
+
+    it('ignores self-links and duplicate links', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!
+      const b = store.addMindMapChild(root.id)!
+
+      store.createMindMapLink(a.id, a.id) // self
+      store.createMindMapLink(a.id, b.id)
+      store.createMindMapLink(a.id, b.id) // duplicate
+      store.createMindMapLink(b.id, a.id) // duplicate, reversed
+
+      const links = store.currentBoard!.connections.filter(c =>
+        [c.fromCardId, c.toCardId].includes(a.id) &&
+        [c.fromCardId, c.toCardId].includes(b.id)
+      )
+      expect(links.length).toBe(1)
+    })
+  })
 })
