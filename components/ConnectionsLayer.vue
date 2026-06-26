@@ -146,7 +146,13 @@ const getConnectionPath = (connection: Connection): string => {
   }
 
   if (connection.style === 'curved') {
-    // Bezier curve for smooth connections
+    // Mindmap links read best as a smooth side-to-side curve: cubic bezier with
+    // horizontal control handles so the line leaves/enters each node level.
+    if (fromCard.type === 'mindmap' && toCard.type === 'mindmap') {
+      const dx = Math.max(Math.abs(x2 - x1) * 0.5, 40)
+      return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
+    }
+    // Other curved connections: quadratic curve through the midpoint.
     const controlX = (x1 + x2) / 2
     const controlY = (y1 + y2) / 2
     return `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`

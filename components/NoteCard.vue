@@ -1,7 +1,8 @@
 <template>
   <div
-    class="note-card absolute rounded-lg shadow-lg border-2 transition-shadow"
+    class="note-card absolute rounded-lg border-2 transition-shadow"
     :class="{
+      'shadow-lg': card.type !== 'image',
       'border-blue-500 dark:border-blue-400': isSelected,
       'border-purple-500 dark:border-purple-400 ring-2 ring-purple-300 dark:ring-purple-600': canvasStore.connectionStart === card.id,
       'border-transparent': !isSelected && canvasStore.connectionStart !== card.id,
@@ -14,7 +15,7 @@
       top: `${card.position.y}px`,
       width: `${card.size.width}px`,
       height: `${card.size.height}px`,
-      backgroundColor: card.color || '#ffffff',
+      backgroundColor: card.type === 'image' ? 'transparent' : (card.color || '#ffffff'),
       zIndex: Math.min(card.zIndex, 9999),
       pointerEvents: canvasStore.currentTool.type !== 'select' ? 'none' : 'auto'
     }"

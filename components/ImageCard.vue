@@ -1,5 +1,8 @@
 <template>
-  <div class="h-full w-full relative bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
+  <div
+    class="h-full w-full relative rounded overflow-hidden"
+    :class="{ 'bg-gray-100 dark:bg-gray-800': !imageUrl }"
+  >
     <img
       v-if="imageUrl"
       :src="imageUrl"

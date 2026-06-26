@@ -219,4 +219,48 @@ describe('Canvas Store', () => {
       expect(store.viewport.scale).toBe(1.5)
     })
   })
+
+  describe('Mind Map node placement', () => {
+    type Rect = { position: { x: number; y: number }; size: { width: number; height: number } }
+
+    const overlaps = (a: Rect, b: Rect) =>
+      a.position.x < b.position.x + b.size.width &&
+      b.position.x < a.position.x + a.size.width &&
+      a.position.y < b.position.y + b.size.height &&
+      b.position.y < a.position.y + a.size.height
+
+    it('places children without overlapping each other or the parent', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!
+      const b = store.addMindMapChild(root.id)!
+      const c = store.addMindMapChild(root.id)!
+
+      const nodes = [root, a, b, c]
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          expect(overlaps(nodes[i], nodes[j])).toBe(false)
+        }
+      }
+    })
+
+    it('does not collide when mixing children (Tab) and siblings (Enter)', () => {
+      const store = useCanvasStore()
+      store.createBoard('Mind Map Board')
+
+      const root = store.addMindMapNode({ x: 0, y: 0 })
+      const a = store.addMindMapChild(root.id)!     // Tab
+      const b = store.addMindMapChild(root.id)!     // Tab
+      const s = store.addMindMapSibling(a.id)!      // Enter on first child
+
+      const nodes = [a, b, s]
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          expect(overlaps(nodes[i], nodes[j])).toBe(false)
+        }
+      }
+    })
+  })
 })

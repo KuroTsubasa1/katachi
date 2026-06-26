@@ -882,15 +882,24 @@ export const useCanvasStore = defineStore('canvas', {
       const parent = this.currentBoard.cards.find(c => c.id === parentId)
       if (!parent || parent.type !== 'mindmap' || !parent.mindMapData) return null
 
-      // Calculate position for new child
-      const childCount = parent.mindMapData.childIds.length
       const horizontalSpacing = 250
-      const verticalSpacing = 120 // Increased from 100 to prevent overlap
+      const gap = 40
+      const newNodeHeight = 60 // matches addMindMapNode default size
 
-      // Position to the right of parent, stacked vertically below each other
+      // Place to the right of the parent. Vertically, drop below the lowest
+      // existing child so siblings never overlap regardless of how they were
+      // created; the first child is centered on the parent.
+      const siblings = parent.mindMapData.childIds
+        .map(id => this.currentBoard!.cards.find(c => c.id === id))
+        .filter((c): c is NoteCard => !!c)
+
+      const y = siblings.length === 0
+        ? parent.position.y + parent.size.height / 2 - newNodeHeight / 2
+        : Math.max(...siblings.map(s => s.position.y + s.size.height)) + gap
+
       const position = {
         x: parent.position.x + horizontalSpacing,
-        y: parent.position.y + (childCount * verticalSpacing)
+        y
       }
 
       return this.addMindMapNode(position, parentId)
@@ -908,17 +917,9 @@ export const useCanvasStore = defineStore('canvas', {
         return null
       }
 
-      const parent = this.currentBoard.cards.find(c => c.id === parentId)
-      if (!parent || !parent.mindMapData) return null
-
-      // Calculate position below the sibling
-      const verticalSpacing = 120 // Increased to match child spacing
-      const position = {
-        x: sibling.position.x,
-        y: sibling.position.y + verticalSpacing
-      }
-
-      return this.addMindMapNode(position, parentId)
+      // A sibling is just another child of the same parent; reuse the shared
+      // placement so Tab and Enter can never drop two nodes at the same spot.
+      return this.addMindMapChild(parentId)
     },
 
     toggleMindMapCollapse(nodeId: string) {
