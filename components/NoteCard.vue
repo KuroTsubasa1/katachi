@@ -191,7 +191,7 @@
     <!-- Mind-map link handle: drag onto another node to create a graph link -->
     <div
       v-if="card.type === 'mindmap'"
-      class="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-400 border-2 border-white dark:border-gray-800 cursor-crosshair z-50 opacity-0 group-hover:opacity-100 transition-opacity"
+      class="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-400 border-2 border-white dark:border-gray-800 cursor-crosshair z-50 opacity-0 group-hover:opacity-100 transition-opacity"
       :class="{ '!opacity-100': isSelected }"
       title="Drag to link to another node"
       @mousedown.stop="handleLinkDragStart"
@@ -384,8 +384,9 @@ const handleLinkDragStart = (e: MouseEvent) => {
   if (props.card.type !== 'mindmap') return
 
   linkDragStartClient = { x: e.clientX, y: e.clientY }
+  // Anchor from the left-edge handle (matches where cross-links attach).
   linkSourceCenter = {
-    x: props.card.position.x + props.card.size.width / 2,
+    x: props.card.position.x,
     y: props.card.position.y + props.card.size.height / 2
   }
   canvasStore.startLinkDrag(props.card.id, linkSourceCenter.x, linkSourceCenter.y)

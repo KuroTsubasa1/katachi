@@ -9,6 +9,8 @@
     @touchmove="handleTouchMove"
     @touchend="handleTouchEnd"
     @wheel="handleWheel"
+    @dragover.prevent
+    @drop="handleCanvasDrop"
   >
     <div
       class="absolute origin-top-left"
@@ -376,30 +378,10 @@ const handleTouchEnd = (e: TouchEvent) => {
   }
 }
 
-// Walk up from the wheel target; if it's inside a scrollable element that can
-// still scroll in the wheel's direction, let the browser scroll it natively
-// instead of zooming the canvas.
-const canScrollNatively = (e: WheelEvent): boolean => {
-  let el = e.target as HTMLElement | null
-  const container = e.currentTarget as HTMLElement
-  while (el && el !== container) {
-    const overflowY = window.getComputedStyle(el).overflowY
-    const scrollable =
-      el.tagName === 'TEXTAREA' || overflowY === 'auto' || overflowY === 'scroll'
-    if (scrollable && el.scrollHeight > el.clientHeight) {
-      const atTop = el.scrollTop <= 0
-      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
-      if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) {
-        return true
-      }
-    }
-    el = el.parentElement
-  }
-  return false
-}
-
 const handleWheel = (e: WheelEvent) => {
-  if (canScrollNatively(e)) return
+  // Over a card, let it scroll its own content natively and never zoom — this
+  // avoids the card/canvas fighting over the wheel. Zoom only over the canvas.
+  if ((e.target as HTMLElement)?.closest?.('.note-card')) return
 
   e.preventDefault()
 
@@ -407,6 +389,22 @@ const handleWheel = (e: WheelEvent) => {
   const newScale = Math.max(0.1, Math.min(3, viewport.value.scale + delta))
 
   canvasStore.updateViewport({ scale: newScale })
+}
+
+// Dropping a card dragged out of a column onto the canvas removes it from the
+// column and places it where it was dropped (in canvas coordinates).
+const handleCanvasDrop = (e: DragEvent) => {
+  const cardId = e.dataTransfer?.getData('cardId')
+  if (!cardId) return
+  e.preventDefault()
+
+  const container = canvasContainer.value
+  if (!container) return
+  const rect = container.getBoundingClientRect()
+  const x = (e.clientX - rect.left - viewport.value.x) / viewport.value.scale
+  const y = (e.clientY - rect.top - viewport.value.y) / viewport.value.scale
+
+  canvasStore.popCardFromColumn(cardId, { x, y })
 }
 
 const zoomIn = () => {
