@@ -17,12 +17,6 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  tailwindcss: {
-    config: {
-      darkMode: 'class'
-    }
-  },
-
   app: {
     head: {
       title: 'Katachi - Visual Workspace',
