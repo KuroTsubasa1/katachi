@@ -302,6 +302,47 @@ describe('Canvas Store', () => {
     })
   })
 
+  describe('Column membership', () => {
+    const seedCardInColumn = () => {
+      const store = useCanvasStore()
+      store.createBoard('Board')
+      const column = store.addCard({
+        type: 'column',
+        position: { x: 0, y: 0 },
+        size: { width: 250, height: 400 },
+        content: 'Col'
+      })
+      const card = store.addCard({
+        type: 'text',
+        position: { x: 500, y: 500 },
+        size: { width: 200, height: 150 },
+        content: 'note'
+      })
+      store.moveCardToColumn(card.id, column.id)
+      return { store, column, card }
+    }
+
+    it('deleteCard removes the card from its column', () => {
+      const { store, column, card } = seedCardInColumn()
+      expect(column.columnCards).toContain(card.id)
+
+      store.deleteCard(card.id)
+
+      expect(column.columnCards).not.toContain(card.id)
+      expect(store.currentBoard!.cards.find(c => c.id === card.id)).toBeUndefined()
+    })
+
+    it('popCardFromColumn removes it from the column and repositions it', () => {
+      const { store, column, card } = seedCardInColumn()
+
+      store.popCardFromColumn(card.id, { x: 320, y: 240 })
+
+      expect(column.columnCards).not.toContain(card.id)
+      const popped = store.currentBoard!.cards.find(c => c.id === card.id)!
+      expect(popped.position).toEqual({ x: 320, y: 240 })
+    })
+  })
+
   describe('Viewport pan clamping', () => {
     it('clamps panning to content bounds + margin', () => {
       const store = useCanvasStore()

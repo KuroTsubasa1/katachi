@@ -1,5 +1,5 @@
 <template>
-  <svg class="absolute inset-0 pointer-events-none" style="z-index: 500;" :width="10000" :height="10000">
+  <svg class="absolute inset-0 pointer-events-none" style="z-index: 500; overflow: visible;" :width="10000" :height="10000">
     <!-- Draw connections. Cross-links (graph links between mind-map nodes that
          aren't parent/child) render dashed, muted and without an arrowhead. -->
     <g
@@ -36,7 +36,6 @@
         :d="getConnectionPath(connection)"
         :stroke="connection.color"
         :stroke-width="connection.width"
-        :stroke-dasharray="isCrossLink(connection) ? '6,5' : undefined"
         fill="none"
         stroke-linecap="round"
         :marker-end="isCrossLink(connection) ? undefined : `url(#arrowhead-${connection.id})`"
@@ -167,36 +166,41 @@ const getConnectionPath = (connection: Connection): string => {
   const toCard = findCard(connection.toCardId)
   if (!fromCard || !toCard) return ''
 
-  // Hierarchy links anchor right-edge -> left-edge; everything else (cross-links
-  // and non-mindmap connections) anchors center -> center.
+  const crossLink = isCrossLink(connection)
   const hierarchy =
-    fromCard.type === 'mindmap' &&
-    toCard.type === 'mindmap' &&
-    !isCrossLink(connection)
+    fromCard.type === 'mindmap' && toCard.type === 'mindmap' && !crossLink
 
-  let x1, y1, x2, y2
-  if (hierarchy) {
-    x1 = fromCard.position.x + fromCard.size.width
-    y1 = fromCard.position.y + fromCard.size.height / 2
-    x2 = toCard.position.x
-    y2 = toCard.position.y + toCard.size.height / 2
-  } else {
-    x1 = fromCard.position.x + fromCard.size.width / 2
-    y1 = fromCard.position.y + fromCard.size.height / 2
-    x2 = toCard.position.x + toCard.size.width / 2
-    y2 = toCard.position.y + toCard.size.height / 2
-  }
+  const cy = (c: typeof fromCard) => c.position.y + c.size.height / 2
 
   if (hierarchy) {
-    // Smooth side-to-side curve: cubic bezier with horizontal control handles.
+    // Leftward layout: parent's LEFT edge -> child's RIGHT edge, with a smooth
+    // cubic curve using horizontal control handles.
+    const x1 = fromCard.position.x
+    const y1 = cy(fromCard)
+    const x2 = toCard.position.x + toCard.size.width
+    const y2 = cy(toCard)
     const dx = Math.max(Math.abs(x2 - x1) * 0.5, 40)
-    return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
+    return `M ${x1} ${y1} C ${x1 - dx} ${y1}, ${x2 + dx} ${y2}, ${x2} ${y2}`
   }
 
+  if (crossLink) {
+    // Graph links: same smooth curve, anchored on the LEFT edge of both nodes
+    // (matching the link handles), bulging out to the left.
+    const x1 = fromCard.position.x
+    const y1 = cy(fromCard)
+    const x2 = toCard.position.x
+    const y2 = cy(toCard)
+    const dx = Math.max(Math.abs(x2 - x1) * 0.5, 60)
+    return `M ${x1} ${y1} C ${x1 - dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
+  }
+
+  // Non-mindmap connections: center -> center.
+  const x1 = fromCard.position.x + fromCard.size.width / 2
+  const y1 = cy(fromCard)
+  const x2 = toCard.position.x + toCard.size.width / 2
+  const y2 = cy(toCard)
   if (connection.style === 'curved') {
-    const controlX = (x1 + x2) / 2
-    const controlY = (y1 + y2) / 2
-    return `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`
+    return `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${(y1 + y2) / 2} ${x2} ${y2}`
   }
   return `M ${x1} ${y1} L ${x2} ${y2}`
 }
@@ -207,7 +211,7 @@ const linkPreviewPath = computed<string | null>(() => {
   if (!drag) return null
   const fromCard = findCard(drag.fromId)
   if (!fromCard) return null
-  const x1 = fromCard.position.x + fromCard.size.width / 2
+  const x1 = fromCard.position.x
   const y1 = fromCard.position.y + fromCard.size.height / 2
   return `M ${x1} ${y1} L ${drag.x} ${drag.y}`
 })

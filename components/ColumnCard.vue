@@ -19,15 +19,19 @@
       <div
         v-for="cardId in localColumnCards"
         :key="cardId"
-        class="bg-white dark:bg-gray-800 p-3 rounded shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow relative group"
+        class="bg-white dark:bg-gray-800 p-3 rounded shadow-sm border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow relative group cursor-grab"
         :style="cardColorStyle(cardId)"
+        draggable="true"
+        title="Drag out to remove from column"
+        @dragstart="onColumnCardDragStart($event, cardId)"
         @dragover.prevent
         @drop="handleDropFromColumn($event, cardId)"
       >
         <ColumnCardPreview :cardId="cardId" />
         <button
           v-if="isSelected"
-          @click="removeCardFromColumn(cardId)"
+          @click="deleteCardFromColumn(cardId)"
+          title="Delete card"
           class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full hover:bg-red-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
         >
           ×
@@ -167,17 +171,16 @@ const handleDropFromColumn = (e: DragEvent, beforeCardId: string) => {
   // In the future, handle reordering cards within column
 }
 
-const removeCardFromColumn = (cardId: string) => {
-  console.log('Removing card from column:', cardId)
-  canvasStore.removeCardFromColumn(cardId, props.columnId)
+// X button: delete the card entirely.
+const deleteCardFromColumn = (cardId: string) => {
+  canvasStore.deleteCard(cardId)
   localColumnCards.value = localColumnCards.value.filter(id => id !== cardId)
+}
 
-  // Move card back to a visible position on canvas
-  const randomX = Math.random() * 300 + 100
-  const randomY = Math.random() * 200 + 100
-  canvasStore.updateCard(cardId, {
-    position: { x: randomX, y: randomY }
-  })
+// Start dragging a card out of the column; the canvas drop handler pops it out.
+const onColumnCardDragStart = (e: DragEvent, cardId: string) => {
+  e.dataTransfer?.setData('cardId', cardId)
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
 }
 
 watch(() => props.columnItems, (newItems) => {

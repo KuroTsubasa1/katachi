@@ -228,6 +228,13 @@ export const useCanvasStore = defineStore('canvas', {
         conn => conn.fromCardId !== cardId && conn.toCardId !== cardId
       )
 
+      // Remove from any column that references it (avoid a dangling reference)
+      this.currentBoard.cards.forEach(c => {
+        if (c.type === 'column' && c.columnCards?.includes(cardId)) {
+          c.columnCards = c.columnCards.filter(id => id !== cardId)
+        }
+      })
+
       this.currentBoard.cards = this.currentBoard.cards.filter(c => c.id !== cardId)
       this.currentBoard.updatedAt = new Date().toISOString()
 
@@ -272,13 +279,17 @@ export const useCanvasStore = defineStore('canvas', {
       const board = this.currentBoard
       const W = this.containerSize.width
       const H = this.containerSize.height
-      if (!board || board.cards.length === 0 || W <= 0 || H <= 0) return vp
+      if (!board || W <= 0 || H <= 0) return vp
+
+      // Ignore cards parked off-canvas inside a column (position ~ -10000).
+      const visible = board.cards.filter(c => c.position.x > -9999 && c.position.y > -9999)
+      if (visible.length === 0) return vp
 
       const s = vp.scale
-      const minX = Math.min(...board.cards.map(c => c.position.x))
-      const minY = Math.min(...board.cards.map(c => c.position.y))
-      const maxX = Math.max(...board.cards.map(c => c.position.x + c.size.width))
-      const maxY = Math.max(...board.cards.map(c => c.position.y + c.size.height))
+      const minX = Math.min(...visible.map(c => c.position.x))
+      const minY = Math.min(...visible.map(c => c.position.y))
+      const maxX = Math.max(...visible.map(c => c.position.x + c.size.width))
+      const maxY = Math.max(...visible.map(c => c.position.y + c.size.height))
 
       const margin = 200 // px of content allowed to sit past the viewport edge
       // When content is smaller than the viewport the range inverts; center it.
@@ -499,6 +510,18 @@ export const useCanvasStore = defineStore('canvas', {
         const { queueSync } = useSync()
         queueSync('card', 'update', { ...column, boardId: this.currentBoard.id })
       }
+    },
+
+    // Remove a card from whichever column holds it and drop it back onto the
+    // canvas at the given position (used when dragging a card out of a column).
+    popCardFromColumn(cardId: string, position: { x: number, y: number }) {
+      if (!this.currentBoard) return
+      const column = this.currentBoard.cards.find(
+        c => c.type === 'column' && c.columnCards?.includes(cardId)
+      )
+      if (!column) return
+      this.removeCardFromColumn(cardId, column.id)
+      this.updateCard(cardId, { position })
     },
 
     toggleSnapToGrid() {
@@ -957,7 +980,7 @@ export const useCanvasStore = defineStore('canvas', {
         : Math.max(...siblings.map(s => s.position.y + s.size.height)) + gap
 
       const position = {
-        x: parent.position.x + horizontalSpacing,
+        x: parent.position.x - horizontalSpacing,
         y
       }
 
