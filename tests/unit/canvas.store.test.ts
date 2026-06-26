@@ -301,4 +301,30 @@ describe('Canvas Store', () => {
       expect(links.length).toBe(1)
     })
   })
+
+  describe('Viewport pan clamping', () => {
+    it('clamps panning to content bounds + margin', () => {
+      const store = useCanvasStore()
+      store.createBoard('Board')
+      store.updateContainerSize(1000, 800)
+      // One 180x60 node at the origin -> content bounds [0,0]..[180,60].
+      store.addMindMapNode({ x: 0, y: 0 })
+
+      store.updateViewport({ x: 100000, y: 100000, scale: 1 })
+
+      // Upper bounds: x = W - margin - minX*s = 1000-200-0 = 800; y = 800-200-0 = 600.
+      expect(store.viewport.x).toBe(800)
+      expect(store.viewport.y).toBe(600)
+    })
+
+    it('does not clamp when there is no board', () => {
+      const store = useCanvasStore()
+      store.updateContainerSize(1000, 800)
+
+      store.updateViewport({ x: 100000, y: 100000 })
+
+      expect(store.viewport.x).toBe(100000)
+      expect(store.viewport.y).toBe(100000)
+    })
+  })
 })

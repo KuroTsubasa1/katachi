@@ -261,7 +261,35 @@ export const useCanvasStore = defineStore('canvas', {
     },
 
     updateViewport(updates: Partial<ViewPort>) {
-      this.viewport = { ...this.viewport, ...updates }
+      this.viewport = this.clampViewport({ ...this.viewport, ...updates })
+    },
+
+    // Keep panning bounded to the content (bounding box of all cards) plus a
+    // margin, so the viewport can't drift off into empty "dead space". Returns
+    // the viewport unchanged when there's nothing to bound (no board/cards, or
+    // the container size isn't known yet).
+    clampViewport(vp: ViewPort): ViewPort {
+      const board = this.currentBoard
+      const W = this.containerSize.width
+      const H = this.containerSize.height
+      if (!board || board.cards.length === 0 || W <= 0 || H <= 0) return vp
+
+      const s = vp.scale
+      const minX = Math.min(...board.cards.map(c => c.position.x))
+      const minY = Math.min(...board.cards.map(c => c.position.y))
+      const maxX = Math.max(...board.cards.map(c => c.position.x + c.size.width))
+      const maxY = Math.max(...board.cards.map(c => c.position.y + c.size.height))
+
+      const margin = 200 // px of content allowed to sit past the viewport edge
+      // When content is smaller than the viewport the range inverts; center it.
+      const clampRange = (v: number, a: number, b: number) =>
+        a <= b ? Math.min(Math.max(v, a), b) : (a + b) / 2
+
+      return {
+        ...vp,
+        x: clampRange(vp.x, margin - maxX * s, W - margin - minX * s),
+        y: clampRange(vp.y, margin - maxY * s, H - margin - minY * s)
+      }
     },
 
     updateContainerSize(width: number, height: number) {
