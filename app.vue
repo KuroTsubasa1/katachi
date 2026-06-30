@@ -69,6 +69,15 @@ onMounted(async () => {
     })
   }
 
+  // Flush pending board writes before the tab/app closes (PWA/mobile safe).
+  if (typeof window !== 'undefined') {
+    const flushOnHide = () => { canvasStore.flushPersist() }
+    window.addEventListener('pagehide', flushOnHide)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushOnHide()
+    })
+  }
+
   // Create default board if none exist
   if (canvasStore.boards.length === 0) {
     canvasStore.createBoard('My First Board')

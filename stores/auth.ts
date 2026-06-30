@@ -111,9 +111,9 @@ export const useAuthStore = defineStore('auth', {
         this.isOffline = false
         if (typeof window !== 'undefined') {
           await idbDelete('user')
-          await idbSet('boards', null)
-          await idbSet('currentBoardId', '')
-          await idbSet('drawings', null)
+          await idbDelete('boards')
+          await idbDelete('currentBoardId')
+          await idbDelete('drawings')
           KATACHI_LOCAL_KEYS.forEach(key => localStorage.removeItem(key))
         }
       }
