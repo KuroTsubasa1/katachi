@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useCanvasStore } from '~/stores/canvas'
 import { useWebSocket } from '~/composables/useWebSocket'
+import { queueAdd, queueGetAll, queueClear } from '~/utils/idb'
 
 const syncQueue = ref<any[]>([])
 const isSyncing = ref(false)
@@ -91,39 +92,32 @@ export const useSync = () => {
   }
 
   const saveToOfflineQueue = async (operations: any[]) => {
-    // Use IndexedDB for offline queue
     if (typeof window === 'undefined') return
-
-    try {
-      const db = await openIndexedDB()
-      const tx = db.transaction('syncQueue', 'readwrite')
-      const store = tx.objectStore('syncQueue')
-
-      for (const op of operations) {
-        await store.add({
-          ...op,
-          queuedAt: Date.now()
-        })
-      }
-    } catch (error) {
-      console.error('Failed to save to offline queue:', error)
+    for (const op of operations) {
+      await queueAdd(op)
     }
   }
 
-  const openIndexedDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('KatachiDB', 1)
+  const flushOfflineQueue = async () => {
+    if (typeof window === 'undefined') return
+    if (!authStore.isAuthenticated || authStore.isOffline) return
+    if (!navigator.onLine) return
 
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => resolve(request.result)
+    const ops = await queueGetAll()
+    if (ops.length === 0) return
 
-      request.onupgradeneeded = (event: any) => {
-        const db = event.target.result
-        if (!db.objectStoreNames.contains('syncQueue')) {
-          db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true })
-        }
-      }
-    })
+    try {
+      const operations = ops.map(({ id, queuedAt, ...op }) => op)
+      await $fetch('/api/boards/sync', {
+        method: 'POST',
+        body: { operations }
+      })
+      await queueClear()
+      syncStatus.value = 'synced'
+    } catch (error) {
+      console.error('[Sync] Failed to flush offline queue:', error)
+      syncStatus.value = 'error'
+    }
   }
 
   const startSync = async () => {
@@ -183,6 +177,9 @@ export const useSync = () => {
           canvasStore.$patch({ boards: mergedBoards })
         }
       }
+
+      // Replay anything queued while offline.
+      await flushOfflineQueue()
     } catch (error) {
       console.error('Initial sync failed:', error)
     }
@@ -470,6 +467,7 @@ export const useSync = () => {
     stopPolling,
     initWebSocket,
     joinBoard,
-    leaveBoard
+    leaveBoard,
+    flushOfflineQueue
   }
 }
