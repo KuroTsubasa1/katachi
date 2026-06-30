@@ -55,8 +55,17 @@ changes sync back to the server when a connection returns.
 - Caching strategy (the app is SSR, so the HTML document is dynamic):
   - **Precache** all `/_nuxt/*` build assets (JS/CSS) — Workbox handles automatically.
   - **Navigation requests** (`/`): `NetworkFirst` with cache fallback. The first online
-    visit caches the document; offline visits serve it from cache. Provide a small
-    `offline.html` as the ultimate fallback.
+    visit caches the document; offline visits serve it from cache.
+  - **NOTE (implementation deviation, 2026-06-30):** the originally-specified static
+    `offline.html` + workbox `navigateFallback` was REMOVED during verification. Nuxt
+    strips the `.html` extension, so the file was precached as `url:"offline"`, which
+    404'd on the SSR server and caused the service-worker install to fail on every load
+    (zero offline capability). It was also the wrong fallback for the goal — a dead-end
+    "you're offline" page instead of the user's cached boards. The app now relies solely
+    on the `NetworkFirst` navigation cache (serves the real app shell offline) plus
+    precached `/_nuxt` assets. The only thing lost is a friendly message on a cold
+    first-ever visit while offline (unreachable for an installed app with a prior
+    session), which shows the browser's native error page instead.
   - **Map tiles / link-preview / external resources:** `NetworkFirst` /
     `StaleWhileRevalidate` that fails gracefully offline.
 
