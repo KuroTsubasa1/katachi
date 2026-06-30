@@ -42,6 +42,16 @@ describe('canvas store IndexedDB persistence', () => {
     expect(await idbGet<any[]>('boards', [])).toHaveLength(1)
   })
 
+  it('does not migrate or remove legacy key when IDB already has boards', async () => {
+    await idbSet('boards', [{ id: 'existing', name: 'In IDB', cards: [], connections: [], shapes: [] }])
+    localStorage.setItem('katachi_boards', JSON.stringify([{ id: 'legacy', name: 'Legacy', cards: [], connections: [], shapes: [] }]))
+    const store = useCanvasStore()
+    await store.loadFromStorage()
+    expect(store.boards).toHaveLength(1)
+    expect(store.boards[0].name).toBe('In IDB')
+    expect(localStorage.getItem('katachi_boards')).not.toBeNull()
+  })
+
   it('saveToLocalStorage keeps viewport in localStorage', () => {
     const store = useCanvasStore()
     store.viewport = { x: 10, y: 20, scale: 2 }

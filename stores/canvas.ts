@@ -742,14 +742,14 @@ export const useCanvasStore = defineStore('canvas', {
           if (cbid) await idbSet('currentBoardId', cbid)
           const drawings = localStorage.getItem(DRAWING_KEY)
           if (drawings) await idbSet('drawings', JSON.parse(drawings))
+          localStorage.removeItem(STORAGE_KEY)
+          localStorage.removeItem('katachi_current_board_id')
+          localStorage.removeItem(DRAWING_KEY)
         }
       } catch (error) {
         console.error('Migration to IndexedDB failed:', error)
         return
       }
-      localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem('katachi_current_board_id')
-      localStorage.removeItem(DRAWING_KEY)
     },
 
     async loadFromStorage() {
