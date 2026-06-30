@@ -65,6 +65,7 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vue/test-utils": "^2.4.6",
     "concurrently": "^9.2.1",
+    "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
