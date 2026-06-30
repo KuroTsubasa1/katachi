@@ -33,8 +33,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-      navigateFallback: '/offline.html',
+      globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
       runtimeCaching: [
         {
           // App navigations: serve from network, fall back to cache offline.
