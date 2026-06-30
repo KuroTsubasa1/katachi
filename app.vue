@@ -15,7 +15,7 @@ import { watch } from 'vue'
 const canvasStore = useCanvasStore()
 const authStore = useAuthStore()
 const router = useRouter()
-const { startSync, startPolling, stopPolling, initWebSocket, joinBoard, leaveBoard } = useSync()
+const { startSync, startPolling, stopPolling, initWebSocket, joinBoard, leaveBoard, flushOfflineQueue } = useSync()
 
 // Initialize keyboard shortcuts
 const { shortcutsHelpOpen, closeShortcutsHelp } = useKeyboardShortcuts()
@@ -30,8 +30,8 @@ onMounted(async () => {
     return
   }
 
-  // Load from localStorage (offline fallback)
-  canvasStore.loadFromLocalStorage()
+  // Load from IndexedDB (offline-aware fallback)
+  await canvasStore.loadFromStorage()
 
   // If authenticated, sync with server and start real-time updates
   if (authStore.isAuthenticated) {
@@ -56,6 +56,16 @@ onMounted(async () => {
 
     // Start polling as fallback (will skip if WebSocket connected)
     startPolling()
+  }
+
+  // When connectivity returns, re-verify the session and replay queued edits.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', async () => {
+      await authStore.checkAuth()
+      if (authStore.isAuthenticated) {
+        await flushOfflineQueue()
+      }
+    })
   }
 
   // Create default board if none exist
