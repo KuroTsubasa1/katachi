@@ -2,6 +2,7 @@
   <div id="app" class="h-screen w-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
     <NuxtPage />
     <KeyboardShortcutsHelp :isOpen="shortcutsHelpOpen" @close="closeShortcutsHelp" />
+    <PwaUpdatePrompt />
   </div>
 </template>
 
